@@ -92,6 +92,9 @@ class IndexWriterWorker final {
       : payload_(index_directory),
         compiler_active_object_(
             &payload_, std::bind(&index::internal::IndexWriterWorker::ScheduledTask, this),
+            std::chrono::milliseconds(keyvi::util::mapGet<uint64_t>(params, INDEX_REFRESH_INTERVAL, 1000))),
+        io_active_object_(
+            &payload_, std::bind(&index::internal::IndexWriterWorker::ScheduledTask2, this),
             std::chrono::milliseconds(keyvi::util::mapGet<uint64_t>(params, INDEX_REFRESH_INTERVAL, 1000))) {
     TRACE("construct worker: %s", payload_.index_directory_.c_str());
 
@@ -141,7 +144,8 @@ class IndexWriterWorker final {
     });
 
     if (++payload_.write_counter_ > 1000) {
-      compiler_active_object_([](IndexPayload& payload) { Compile(&payload); });
+      // compiler_active_object_([](IndexPayload& payload) { Compile(&payload); });
+      CompileAndWrite();
       payload_.write_counter_ = 0;
     }
   }
@@ -163,7 +167,8 @@ class IndexWriterWorker final {
     });
 
     if (++payload_.write_counter_ > 1000) {
-      compiler_active_object_([](IndexPayload& payload) { Compile(&payload); });
+      // compiler_active_object_([](IndexPayload& payload) { Compile(&payload); });
+      CompileAndWrite();
       payload_.write_counter_ = 0;
     }
   }
@@ -176,8 +181,9 @@ class IndexWriterWorker final {
 
     compiler_active_object_([](IndexPayload& payload) {
       PersistDeletes(&payload);
-      Compile(&payload);
+      // Compile(&payload);
     });
+    CompileAndWrite();
   }
 
   /**
@@ -190,11 +196,19 @@ class IndexWriterWorker final {
     std::condition_variable c;
     std::unique_lock<std::mutex> lock(m);
 
-    compiler_active_object_([&m, &c](IndexPayload& payload) {
-      PersistDeletes(&payload);
+    compiler_active_object_([this, &m, &c](IndexPayload& payload) {
+    	if (payload.compiler_) {
+
       Compile(&payload);
-      std::unique_lock<std::mutex> waitLock(m);
-      c.notify_all();
+      compiler_t compiler;
+      payload.compiler_.swap(compiler);
+      io_active_object_([compiler, &m, &c](IndexPayload& p) {
+        WriteSegment(&p, compiler);
+        PersistDeletes(&p);
+        std::unique_lock<std::mutex> waitLock(m);
+        c.notify_all();
+      });
+    	}
     });
 
     c.wait(lock);
@@ -205,6 +219,9 @@ class IndexWriterWorker final {
   std::weak_ptr<segment_vec_t> segments_weak_;
   std::unique_ptr<MergePolicy> merge_policy_;
   util::ActiveObject<IndexPayload> compiler_active_object_;
+
+  //! active object to handle IO in an extra thread
+  util::ActiveObject<IndexPayload> io_active_object_;
 
   void ScheduledTask() {
     TRACE("Scheduled task");
@@ -222,7 +239,27 @@ class IndexWriterWorker final {
     }
 
     PersistDeletes(&payload_);
+    if (payload_.compiler_) {
+
     Compile(&payload_);
+
+
+    compiler_t c;
+    payload_.compiler_.swap(c);
+    io_active_object_([c](IndexPayload& payload) { WriteSegment(&payload, c); });
+    }
+  }
+  void ScheduledTask2() { WriteToc(&payload_); }
+
+  void CompileAndWrite() {
+    compiler_active_object_([this](IndexPayload& payload) {
+    	if (payload_.compiler_) {
+      Compile(&payload);
+      compiler_t c;
+      payload.compiler_.swap(c);
+      io_active_object_([c](IndexPayload& p) { WriteSegment(&p, c); });
+    	}
+    });
   }
 
   /**
@@ -264,17 +301,19 @@ class IndexWriterWorker final {
           TRACE("1st segment after merge: %s", (*new_segments)[0]->GetDictionaryFilename().c_str());
 
           // thread-safe swap
-          {
-            std::unique_lock<std::mutex> lock(payload_.mutex_);
-            payload_.segments_.swap(new_segments);
-          }
-          WriteToc(&payload_);
 
-          // delete old segment files
-          for (const segment_t& s : p.Segments()) {
-            TRACE("delete old file: %s", s->GetDictionaryFilename().c_str());
-            s->RemoveFiles();
-          }
+          auto a = p.Segments();
+          io_active_object_([new_segments, a](IndexPayload& payload) {
+        	  segments_t s(new_segments);
+
+            std::unique_lock<std::mutex> lock(payload.mutex_);
+            payload.segments_.swap(s);
+            // delete old segment files
+            for (const segment_t& s : a) {
+              TRACE("delete old file: %s", s->GetDictionaryFilename().c_str());
+              s->RemoveFiles();
+            }
+          });
 
           p.SetMerged();
 
@@ -368,32 +407,24 @@ class IndexWriterWorker final {
       return;
     }
 
+    TRACE("compiling dictionary");
+    payload->compiler_->Compile();
+  }
+
+  static inline void WriteSegment(IndexPayload* payload, compiler_t compiler) {
     boost::filesystem::path p(payload->index_directory_);
     p /= boost::filesystem::unique_path("%%%%-%%%%-%%%%-%%%%.kv");
 
-    TRACE("compiling");
-    payload->compiler_->Compile();
-    TRACE("write to file [%s] [%s]", p.string().c_str(), p.filename().string().c_str());
-
-    payload->compiler_->WriteToFile(p.string());
-
-    // free resources
-    payload->compiler_.reset();
-
-    // add/register new segment
-    // we have to copy the segments (shallow copy/list of shared pointers to segments)
-    // and then swap it
+    TRACE("write segment dict to file [%s] [%s]", p.string().c_str(), p.filename().string().c_str());
+    compiler->WriteToFile(p.string());
     segment_t new_segment(new Segment(p));
     segments_t new_segments = std::make_shared<segment_vec_t>(*payload->segments_);
     new_segments->push_back(new_segment);
-
     // thread-safe swap
     {
       std::unique_lock<std::mutex> lock(payload->mutex_);
       payload->segments_.swap(new_segments);
     }
-
-    WriteToc(payload);
   }
 
   static void WriteToc(const IndexPayload* payload) {
