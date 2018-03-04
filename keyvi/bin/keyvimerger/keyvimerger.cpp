@@ -25,11 +25,16 @@
 
 #include <string>
 
+// boost json parser depends on boost::spirit, and spirit is not thread-safe by default. so need to enable thread-safety
+#define BOOST_SPIRIT_THREADSAFE
 #include <boost/filesystem.hpp>
 #include <boost/iostreams/device/file.hpp>
 #include <boost/iostreams/filtering_stream.hpp>
 #include <boost/program_options.hpp>
+#include <boost/property_tree/json_parser.hpp>
+#include <boost/property_tree/ptree.hpp>
 
+#include "dictionary/dictionary_merger.h"
 #include "dictionary/dictionary_types.h"
 #include "util/configuration.h"
 
@@ -47,6 +52,8 @@ keyvi::util::parameters_t extract_parameters(const boost::program_options::varia
   }
   return ret;
 }
+
+//void add_stats_to_manifest(boost::property_tree::ptree&, const keyvi::dictionary::MergeStats& stats) {}
 
 int main(int argc, char** argv) {
   std::vector<std::string> input_files;
