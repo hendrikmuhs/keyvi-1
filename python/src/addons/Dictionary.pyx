@@ -87,3 +87,16 @@
             lambda kv: kv and isinstance(kv, list) and len(kv) > 1 and kv[1],
             [s.rstrip().split("\n") for s in py_result_unicode.split("\n\n")]
         )}
+
+    def GetExpressionMatch (self, key, default = None):
+        if isinstance(key, unicode):
+            key = key.encode('utf-8')
+        assert isinstance(key, bytes), 'arg in_0 wrong type'
+
+        cdef shared_ptr[_Match] _r = shared_ptr[_Match](new _Match(deref(self.inst.get()).GetExpressionMatch(<libcpp_string>key)))
+
+        if _r.get().IsEmpty():
+            return default
+        cdef Match py_result = Match.__new__(Match)
+        py_result.inst = _r
+        return py_result
