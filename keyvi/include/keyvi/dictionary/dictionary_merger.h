@@ -175,7 +175,7 @@ class DictionaryMerger final {
   void Merge() {
     size_t sparse_array_size_sum = 0;
     for (auto fsa : dicts_to_merge_) {
-      sparse_array_size_sum += fsa->SparseArraySize();
+      sparse_array_size_sum += fsa->GetSparseArraySize();
     }
 
     ValueStoreT* value_store = append_merge_ ? new ValueStoreT(inputFiles_) : new ValueStoreT(params_);

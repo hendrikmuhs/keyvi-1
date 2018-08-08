@@ -222,7 +222,7 @@ class DictionaryCompiler final {
    * @param manifest as JSON string
    */
   void SetManifestFromString(const std::string& manifest) {
-    SetManifest(keyvi::util::SerializationUtils::ReadJsonRecord(manifest));
+    //SetManifest(keyvi::util::SerializationUtils::ReadJsonRecord(manifest));
   }
 
   /**

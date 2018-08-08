@@ -32,6 +32,9 @@
 #define BOOST_SPIRIT_THREADSAFE
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
+#include "rapidjson/document.h"
+#include "rapidjson/stringbuffer.h"
+#include "rapidjson/writer.h"
 
 #include "dictionary/util/endian.h"
 
@@ -52,27 +55,32 @@ class SerializationUtils {
     stream << header;
   }
 
-  static boost::property_tree::ptree ReadJsonRecord(std::istream& stream) {
+  static void WriteJsonRecord(std::ostream& stream, const rapidjson::Document& record) {
+    rapidjson::StringBuffer buffer;
+    rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+    record.Accept(writer);
+
+    uint32_t size = htobe32(buffer.GetSize());
+
+    stream.write(reinterpret_cast<const char*>(&size), sizeof(uint32_t));
+    stream.write(buffer.GetString(), buffer.GetSize());
+  }
+
+  static void ReadJsonRecord(std::istream& stream, rapidjson::Document& record) {
     uint32_t header_size;
     stream.read(reinterpret_cast<char*>(&header_size), sizeof(int));
     header_size = be32toh(header_size);
     char* buffer = new char[header_size];
     stream.read(buffer, header_size);
-    std::string buffer_as_string(buffer, header_size);
-    delete[] buffer;
-    std::istringstream string_stream(buffer_as_string);
-
-    boost::property_tree::ptree properties;
-    boost::property_tree::read_json(string_stream, properties);
-    return properties;
+    record.Parse(buffer, header_size);
   }
 
-  static boost::property_tree::ptree ReadValueStoreProperties(std::istream& stream) {
-    const auto properties = ReadJsonRecord(stream);
+  static void ReadValueStoreProperties(std::istream& stream, rapidjson::Document& properties) {
+    ReadJsonRecord(stream, properties);
     const auto offset = stream.tellg();
 
     // check for file truncation
-    const size_t vsSize = boost::lexical_cast<size_t>(properties.get<std::string>("size"));
+    const size_t vsSize = boost::lexical_cast<size_t>(properties["size"].GetString());
     if (vsSize > 0) {
       stream.seekg(vsSize - 1, stream.cur);
       if (stream.peek() == EOF) {
@@ -81,24 +89,19 @@ class SerializationUtils {
     }
 
     stream.seekg(offset);
-    return properties;
+    return;
   }
 
   /**
-   * Utility method to return a property tree from a JSON string.
+   * Utility method to return a json document from a JSON string.
    * @param record a string containing a JSON
-   * @return the parsed property tree
+   * @return the parsed document
    */
-  static boost::property_tree::ptree ReadJsonRecord(const std::string& record) {
-    boost::property_tree::ptree properties;
-
-    // sending an empty string clears the manifest
-    if (!record.empty()) {
-      std::istringstream string_stream(record);
-      boost::property_tree::read_json(string_stream, properties);
+  static void ReadJsonRecord(const std::string& json_string, rapidjson::Document& record) {
+    if (!json_string.empty()) {
+      record.Parse(json_string);
     }
-
-    return properties;
+    return;
   }
 };
 

@@ -35,6 +35,8 @@
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
 
+#include "rapidjson/document.h"
+
 #include "dictionary/fsa/internal/null_value_store.h"
 #include "dictionary/fsa/internal/sparse_array_builder.h"
 #include "dictionary/fsa/internal/unpacked_state.h"
@@ -317,7 +319,6 @@ class Generator final {
    * @param manifest as JSON string
    */
   inline void SetManifestFromString(const std::string& manifest) {
-    SetManifest(keyvi::util::SerializationUtils::ReadJsonRecord(manifest));
   }
 
   /**
@@ -325,7 +326,7 @@ class Generator final {
    *
    * @param manifest
    */
-  inline void SetManifest(const boost::property_tree::ptree& manifest) { manifest_ = manifest; }
+  inline void SetManifest(const boost::property_tree::ptree& manifest) {  }
 
  private:
   size_t memory_limit_;
@@ -340,7 +341,7 @@ class Generator final {
   generator_state state_ = generator_state::FEEDING;
   OffsetTypeT start_state_ = 0;
   uint64_t number_of_states_ = 0;
-  boost::property_tree::ptree manifest_ = boost::property_tree::ptree();
+  //boost::property_tree::ptree manifest_ = boost::property_tree::ptree();
   bool minimize_ = true;
 
   void WriteHeader(std::ostream& stream) {
@@ -350,7 +351,7 @@ class Generator final {
     pt.put("number_of_keys", std::to_string(number_of_keys_added_));
     pt.put("value_store_type", std::to_string(value_store_->GetValueStoreType()));
     pt.put("number_of_states", std::to_string(number_of_states_));
-    pt.add_child("manifest", manifest_);
+    //pt.add_child("manifest", manifest_);
 
     keyvi::util::SerializationUtils::WriteJsonRecord(stream, pt);
   }

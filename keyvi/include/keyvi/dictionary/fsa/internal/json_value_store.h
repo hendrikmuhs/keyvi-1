@@ -48,11 +48,11 @@
 #include "dictionary/dictionary_merger_fwd.h"
 #include "dictionary/fsa/internal/constants.h"
 #include "dictionary/fsa/internal/ivalue_store.h"
+#include "dictionary/fsa/internal/keyvi_file.h"
 #include "dictionary/fsa/internal/lru_generation_cache.h"
 #include "dictionary/fsa/internal/memory_map_flags.h"
 #include "dictionary/fsa/internal/memory_map_manager.h"
 #include "dictionary/fsa/internal/value_store_persistence.h"
-#include "dictionary/keyvi_file.h"
 #include "util/configuration.h"
 #include "util/json_value.h"
 #include "util/serialization_utils.h"
@@ -118,15 +118,17 @@ class JsonValueStore final : public IValueStoreWriter {
   explicit JsonValueStore(const std::vector<std::string>& inputFiles)
       : hash_(0), mergeMode_(true), inputFiles_(inputFiles), offsets_() {
     for (const auto& filename : inputFiles) {
-      KeyViFile keyViFile(filename);
+      KeyviFile keyvi_file(filename);
 
-      auto& vsStream = keyViFile.valueStoreStream();
-      const boost::property_tree::ptree props = keyvi::util::SerializationUtils::ReadValueStoreProperties(vsStream);
+      auto& vsStream = keyvi_file.valueStoreStream();
+
+      rapidjson::Document properties;
+      keyvi::util::SerializationUtils::ReadValueStoreProperties(vsStream, properties);
       offsets_.push_back(values_buffer_size_);
 
-      number_of_values_ += boost::lexical_cast<size_t>(props.get<std::string>("values"));
-      number_of_unique_values_ += boost::lexical_cast<size_t>(props.get<std::string>("unique_values"));
-      values_buffer_size_ += boost::lexical_cast<size_t>(props.get<std::string>("size"));
+      number_of_values_ += boost::lexical_cast<size_t>(properties["values"].GetString());
+      number_of_unique_values_ += boost::lexical_cast<size_t>(properties["unique_values"].GetString());
+      values_buffer_size_ += boost::lexical_cast<size_t>(properties["size"].GetString());
     }
   }
 
@@ -212,9 +214,10 @@ class JsonValueStore final : public IValueStoreWriter {
       values_extern_->Write(stream, values_buffer_size_);
     } else {
       for (const auto& filename : inputFiles_) {
-        KeyViFile keyViFile(filename);
-        auto& in_stream = keyViFile.valueStoreStream();
-        keyvi::util::SerializationUtils::ReadValueStoreProperties(in_stream);
+        KeyviFile keyvi_file(filename);
+        auto& in_stream = keyvi_file.valueStoreStream();
+        rapidjson::Document properties;
+        keyvi::util::SerializationUtils::ReadValueStoreProperties(in_stream, properties);
 
         stream << in_stream.rdbuf();
       }
@@ -303,10 +306,10 @@ class JsonValueStoreReader final : public IValueStoreReader {
       : IValueStoreReader(stream, file_mapping) {
     TRACE("JsonValueStoreReader construct");
 
-    properties_ = keyvi::util::SerializationUtils::ReadValueStoreProperties(stream);
+    keyvi::util::SerializationUtils::ReadValueStoreProperties(stream, properties_);
 
     const size_t offset = stream.tellg();
-    const size_t strings_size = boost::lexical_cast<size_t>(properties_.get<std::string>("size"));
+    const size_t strings_size = boost::lexical_cast<size_t>(properties_["size"].GetString());
 
     const boost::interprocess::map_options_t map_options =
         internal::MemoryMapFlags::ValuesGetMemoryMapOptions(loading_strategy);
@@ -350,14 +353,14 @@ class JsonValueStoreReader final : public IValueStoreReader {
 
   std::string GetStatistics() const override {
     std::ostringstream buf;
-    boost::property_tree::write_json(buf, properties_, false);
+    //boost::property_tree::write_json(buf, properties_, false);
     return buf.str();
   }
 
  private:
   boost::interprocess::mapped_region* strings_region_;
   const char* strings_;
-  boost::property_tree::ptree properties_;
+  rapidjson::Document properties_;
 
   const char* GetValueStorePayload() const override { return strings_; }
 };

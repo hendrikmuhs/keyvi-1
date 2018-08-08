@@ -30,7 +30,7 @@
 #include <memory>
 #include <string>
 
-#include <boost/property_tree/ptree.hpp>
+#include "rapidjson/document.h"
 
 #include "dictionary/fsa/internal/value_store_factory.h"
 #include "util/serialization_utils.h"
@@ -65,14 +65,18 @@ class VectorFile {
     CheckValidity(&in_stream);
 
     in_stream.seekg(KEYVI_VECTOR_BEGIN_LEN);
-    const auto file_ptree = util::SerializationUtils::ReadJsonRecord(in_stream);
-    if (value_store_type != boost::lexical_cast<size_t>(file_ptree.get<std::string>(VALUE_STORE_TYPE_LABEl))) {
+
+    rapidjson::Document file_ptree;
+
+    util::SerializationUtils::ReadJsonRecord(in_stream, file_ptree);
+    if (value_store_type != boost::lexical_cast<size_t>(file_ptree[VALUE_STORE_TYPE_LABEl].GetString())) {
       throw std::invalid_argument("wrong vector file");
     }
-    manifest_ = file_ptree.get<std::string>(MANIFEST_LABEL);
+    manifest_ = file_ptree[MANIFEST_LABEL].GetString();
 
-    const auto index_ptree = util::SerializationUtils::ReadJsonRecord(in_stream);
-    size_ = boost::lexical_cast<size_t>(index_ptree.get<std::string>(SIZE_LABEL));
+    rapidjson::Document index_ptree;
+    util::SerializationUtils::ReadJsonRecord(in_stream, index_ptree);
+    size_ = boost::lexical_cast<size_t>(index_ptree[SIZE_LABEL].GetString());
     const auto index_size = size_ * sizeof(offset_type);
 
     auto file_mapping = boost::interprocess::file_mapping(filename.c_str(), boost::interprocess::read_only);

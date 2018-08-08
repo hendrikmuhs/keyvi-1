@@ -31,6 +31,8 @@
 #include <boost/functional/hash.hpp>
 #include <boost/lexical_cast.hpp>
 
+#include "rapidjson/document.h"
+
 #include "dictionary/fsa/internal/ivalue_store.h"
 #include "dictionary/fsa/internal/memory_map_flags.h"
 #include "dictionary/fsa/internal/minimization_hash.h"
@@ -215,10 +217,12 @@ class StringValueStoreReader final : public IValueStoreReader {
   StringValueStoreReader(std::istream& stream, boost::interprocess::file_mapping* file_mapping,
                          loading_strategy_types loading_strategy = loading_strategy_types::lazy)
       : IValueStoreReader(stream, file_mapping) {
-    const boost::property_tree::ptree properties = keyvi::util::SerializationUtils::ReadValueStoreProperties(stream);
+    rapidjson::Document properties;
+
+    keyvi::util::SerializationUtils::ReadValueStoreProperties(stream, properties);
 
     const size_t offset = stream.tellg();
-    const size_t strings_size = boost::lexical_cast<size_t>(properties.get<std::string>("size"));
+    const size_t strings_size = boost::lexical_cast<size_t>(properties["size"].GetString());
 
     const boost::interprocess::map_options_t map_options =
         internal::MemoryMapFlags::ValuesGetMemoryMapOptions(loading_strategy);
