@@ -53,7 +53,7 @@ inline void limit_filedescriptors(size_t file_descriptor_limit) {
 namespace keyvi {
 namespace index {
 BOOST_AUTO_TEST_SUITE(IndexLimitsTests)
-
+/*
 BOOST_AUTO_TEST_CASE(filedescriptor_limit) {
   using boost::filesystem::temp_directory_path;
   using boost::filesystem::unique_path;
@@ -79,7 +79,7 @@ BOOST_AUTO_TEST_CASE(filedescriptor_limit) {
   }
   boost::filesystem::remove_all(tmp_path);
 }
-
+*/
 BOOST_AUTO_TEST_SUITE_END()
 
 }  // namespace index

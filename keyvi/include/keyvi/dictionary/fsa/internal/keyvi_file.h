@@ -36,6 +36,9 @@
 
 #include "dictionary/fsa/internal/constants.h"
 #include "dictionary/fsa/internal/ivalue_store.h"
+#include "dictionary/fsa/internal/memory_map_flags.h"
+#include "dictionary/fsa/internal/value_store_factory.h"
+
 #include "util/serialization_utils.h"
 
 #define ENABLE_TRACING
@@ -48,19 +51,32 @@ namespace internal {
 
 class KeyviFile {
  public:
-  using properties_t = rapidjson::Document;
+  explicit KeyviFile(const std::string& filename) : KeyviFile(filename, loading_strategy_types::lazy, true) {}
 
-  explicit KeyviFile(const std::string& filename) : file_stream_(filename, std::ios::binary) {
-    if (!file_stream_.good()) {
+  explicit KeyviFile(const std::string& file_name,
+                     loading_strategy_types loading_strategy,
+                     const bool load_value_store)
+      : file_name_(file_name), loading_strategy_(loading_strategy) {
+    std::ifstream file_stream(file_name, std::ios::binary);
+
+    if (!file_stream.good()) {
       throw std::invalid_argument("file not found");
     }
 
+    // todo: make this optional
+    file_mapping_ = boost::interprocess::file_mapping(file_name_.c_str(), boost::interprocess::read_only);
+
     char magic[KEYVI_FILE_MAGIC_LEN];
-    file_stream_.read(magic, KEYVI_FILE_MAGIC_LEN);
+    file_stream.read(magic, KEYVI_FILE_MAGIC_LEN);
 
     // check magic
     if (std::strncmp(magic, KEYVI_FILE_MAGIC, KEYVI_FILE_MAGIC_LEN) == 0) {
-      readJsonFormat();
+      ReadJsonFormat(file_stream);
+
+      if (load_value_store) {
+        LoadValueStore(file_stream);
+      }
+
       return;
     }
     throw std::invalid_argument("not a keyvi file");
@@ -74,24 +90,50 @@ class KeyviFile {
 
   size_t GetSparseArraySize() const { return sparse_array_size_; }
 
-  std::istream& persistenceStream() { return file_stream_.seekg(persistence_offset_); }
+  std::streampos GetPersistenceOffset() const { return persistence_offset_; }
 
-  std::istream& valueStoreStream() { return file_stream_.seekg(value_store_offset_); }
+  boost::interprocess::file_mapping& GetFileMapping() { return file_mapping_; }
+
+  internal::IValueStoreReader* GetValueStore() const {
+    /*if (value_store_reader_.get() == nullptr) {
+      std::ifstream file_stream(file_name_, std::ios::binary);
+
+      if (!file_stream.good()) {
+        throw std::invalid_argument("file not found");
+      }
+
+      LoadValueStore(file_stream);
+    }*/
+
+    return value_store_reader_.get();
+  }
 
  private:
-  std::ifstream file_stream_;
+  std::string file_name_;
+  loading_strategy_types loading_strategy_;
+  boost::interprocess::file_mapping file_mapping_;
   uint64_t start_state_;
   uint64_t number_of_keys_;
   value_store_t value_store_type_;
   size_t sparse_array_size_;
   std::streampos persistence_offset_;
   std::streampos value_store_offset_;
+  std::unique_ptr<internal::IValueStoreReader> value_store_reader_;
 
-  void readJsonFormat() {
+  void LoadValueStore(std::ifstream& file_stream) {
+    file_stream.seekg(value_store_offset_);
+
+    boost::interprocess::file_mapping file_mapping{
+        boost::interprocess::file_mapping(file_name_.c_str(), boost::interprocess::read_only)};
+
+    value_store_reader_.reset(
+        internal::ValueStoreFactory::MakeReader(value_store_type_, file_stream, &file_mapping, loading_strategy_));
+  }
+
+  void ReadJsonFormat(std::ifstream& file_stream) {
     rapidjson::Document automata_properties;
 
-    keyvi::util::SerializationUtils::ReadJsonRecord(file_stream_, automata_properties);
-    persistence_offset_ = file_stream_.tellg();
+    keyvi::util::SerializationUtils::ReadJsonRecord(file_stream, automata_properties);
 
     if (boost::lexical_cast<int>(automata_properties["version"].GetString()) < KEYVI_FILE_VERSION_MIN) {
       throw std::invalid_argument("this version of keyvi file is unsupported");
@@ -106,25 +148,27 @@ class KeyviFile {
         boost::lexical_cast<int>(automata_properties["value_store_type"].GetString()));
 
     rapidjson::Document sparse_array_properties;
-    keyvi::util::SerializationUtils::ReadJsonRecord(file_stream_, sparse_array_properties);
+    keyvi::util::SerializationUtils::ReadJsonRecord(file_stream, sparse_array_properties);
 
     if (boost::lexical_cast<int>(sparse_array_properties["version"].GetString()) < KEYVI_FILE_PERSISTENCE_VERSION_MIN) {
       throw std::invalid_argument("this versions of keyvi file is unsupported");
     }
 
+    persistence_offset_ = file_stream.tellg();
+
     const size_t bucket_size = sizeof(uint16_t);
     sparse_array_size_ = boost::lexical_cast<size_t>(sparse_array_properties["size"].GetString());
 
     // check for file truncation
-    file_stream_.seekg((size_t)file_stream_.tellg() + sparse_array_size_ + bucket_size * sparse_array_size_ - 1);
-    if (file_stream_.peek() == EOF) {
+    file_stream.seekg((size_t)file_stream.tellg() + sparse_array_size_ + bucket_size * sparse_array_size_ - 1);
+    if (file_stream.peek() == EOF) {
       throw std::invalid_argument("file is corrupt(truncated)");
     }
 
-    file_stream_.get();
-    value_store_offset_ = file_stream_.tellg();
+    file_stream.get();
+    value_store_offset_ = file_stream.tellg();
   }
-};
+};  // namespace internal
 
 }  // namespace internal
 }  // namespace fsa

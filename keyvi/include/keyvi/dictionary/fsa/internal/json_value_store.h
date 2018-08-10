@@ -48,7 +48,7 @@
 #include "dictionary/dictionary_merger_fwd.h"
 #include "dictionary/fsa/internal/constants.h"
 #include "dictionary/fsa/internal/ivalue_store.h"
-#include "dictionary/fsa/internal/keyvi_file.h"
+//#include "dictionary/fsa/internal/keyvi_file.h"
 #include "dictionary/fsa/internal/lru_generation_cache.h"
 #include "dictionary/fsa/internal/memory_map_flags.h"
 #include "dictionary/fsa/internal/memory_map_manager.h"
@@ -117,7 +117,7 @@ class JsonValueStore final : public IValueStoreWriter {
 
   explicit JsonValueStore(const std::vector<std::string>& inputFiles)
       : hash_(0), mergeMode_(true), inputFiles_(inputFiles), offsets_() {
-    for (const auto& filename : inputFiles) {
+    /*for (const std::string& filename : inputFiles) {
       KeyviFile keyvi_file(filename);
 
       auto& vsStream = keyvi_file.valueStoreStream();
@@ -129,7 +129,7 @@ class JsonValueStore final : public IValueStoreWriter {
       number_of_values_ += boost::lexical_cast<size_t>(properties["values"].GetString());
       number_of_unique_values_ += boost::lexical_cast<size_t>(properties["unique_values"].GetString());
       values_buffer_size_ += boost::lexical_cast<size_t>(properties["size"].GetString());
-    }
+    }*/
   }
 
   ~JsonValueStore() {
@@ -213,14 +213,14 @@ class JsonValueStore final : public IValueStoreWriter {
     if (!mergeMode_) {
       values_extern_->Write(stream, values_buffer_size_);
     } else {
-      for (const auto& filename : inputFiles_) {
+      /*for (const std::string& filename : inputFiles_) {
         KeyviFile keyvi_file(filename);
         auto& in_stream = keyvi_file.valueStoreStream();
         rapidjson::Document properties;
         keyvi::util::SerializationUtils::ReadValueStoreProperties(in_stream, properties);
 
         stream << in_stream.rdbuf();
-      }
+      }*/
     }
   }
 
@@ -297,6 +297,62 @@ class JsonValueStore final : public IValueStoreWriter {
   }
 };
 
+class JsonValueStoreMerger final : public IValueStoreWriter {
+ public:
+  explicit JsonValueStoreMerger(const std::vector<std::string>& inputFiles)
+      : inputFiles_(inputFiles), offsets_() {
+    /*for (const std::string& filename : inputFiles) {
+      KeyviFile keyvi_file(filename);
+
+      auto& vsStream = keyvi_file.valueStoreStream();
+
+      rapidjson::Document properties;
+      keyvi::util::SerializationUtils::ReadValueStoreProperties(vsStream, properties);
+      offsets_.push_back(values_buffer_size_);
+
+      number_of_values_ += boost::lexical_cast<size_t>(properties["values"].GetString());
+      number_of_unique_values_ += boost::lexical_cast<size_t>(properties["unique_values"].GetString());
+      values_buffer_size_ += boost::lexical_cast<size_t>(properties["size"].GetString());
+    }*/
+  }
+
+  JsonValueStoreMerger& operator=(JsonValueStoreMerger const&) = delete;
+  JsonValueStoreMerger(const JsonValueStoreMerger& that) = delete;
+
+  uint64_t GetMergeValueId(size_t fileIndex, uint64_t oldIndex) const { return offsets_[fileIndex] + oldIndex; }
+
+  void CloseFeeding() {}
+
+  void Write(std::ostream& stream) {
+     boost::property_tree::ptree pt;
+     pt.put("size", std::to_string(values_buffer_size_));
+     pt.put("values", std::to_string(number_of_values_));
+     pt.put("unique_values", std::to_string(number_of_unique_values_));
+
+     // todo: compression info???
+
+     keyvi::util::SerializationUtils::WriteJsonRecord(stream, pt);
+     TRACE("Wrote JSON header, stream at %d", stream.tellp());
+
+       /*for (const std::string& filename : inputFiles_) {
+         KeyviFile keyvi_file(filename);
+         auto& in_stream = keyvi_file.valueStoreStream();
+         rapidjson::Document properties;
+         keyvi::util::SerializationUtils::ReadValueStoreProperties(in_stream, properties);
+
+         stream << in_stream.rdbuf();
+       }*/
+     }
+
+ private:
+  size_t number_of_values_ = 0;
+  size_t number_of_unique_values_ = 0;
+  size_t values_buffer_size_ = 0;
+
+  std::vector<std::string> inputFiles_;
+  std::vector<size_t> offsets_;
+};
+
 class JsonValueStoreReader final : public IValueStoreReader {
  public:
   using IValueStoreReader::IValueStoreReader;
@@ -353,7 +409,7 @@ class JsonValueStoreReader final : public IValueStoreReader {
 
   std::string GetStatistics() const override {
     std::ostringstream buf;
-    //boost::property_tree::write_json(buf, properties_, false);
+    // boost::property_tree::write_json(buf, properties_, false);
     return buf.str();
   }
 

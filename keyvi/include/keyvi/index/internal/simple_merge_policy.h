@@ -43,9 +43,16 @@ class SimpleMergePolicy final : public MergePolicy {
       if (!s->MarkedForMerge()) {
         TRACE("Add to merge list %s", s->GetFilename().c_str());
         to_merge.push_back(s);
+      } else if (to_merge.size() == 1) {
+        if (to_merge[0]->HasDeletedKeys()) {
+          break;
+        }
+        to_merge.clear();
+      } else if (to_merge.size() > 1) {
+        break;
       }
 
-      if (to_merge.size() > MAX_SEGMENT_PER_MERGE) {
+      if (to_merge.size() > MAX_SEGMENTS_PER_MERGE) {
         break;
       }
     }
@@ -60,7 +67,7 @@ class SimpleMergePolicy final : public MergePolicy {
   }
 
  private:
-  static const size_t MAX_SEGMENT_PER_MERGE = 500;
+  static const size_t MAX_SEGMENTS_PER_MERGE = 500;
 };
 
 } /* namespace internal */

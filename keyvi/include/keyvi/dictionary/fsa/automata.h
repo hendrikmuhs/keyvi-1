@@ -86,23 +86,21 @@ class Automata final {
 
  private:
   explicit Automata(const std::string& filename, loading_strategy_types loading_strategy, const bool load_value_store)
-      : keyvi_file_(filename) {
-    const std::streampos offset = keyvi_file_.persistenceStream().tellg();
-
-    file_mapping_ = boost::interprocess::file_mapping(filename.c_str(), boost::interprocess::read_only);
+      : keyvi_file_(filename, loading_strategy, load_value_store) {
+    const std::streampos offset = keyvi_file_.GetPersistenceOffset();
 
     const boost::interprocess::map_options_t map_options =
         internal::MemoryMapFlags::FSAGetMemoryMapOptions(loading_strategy);
 
     TRACE("labels start offset: %d", offset);
-    labels_region_ = boost::interprocess::mapped_region(file_mapping_, boost::interprocess::read_only, offset,
-                                                        keyvi_file_.GetSparseArraySize(), 0, map_options);
+    labels_region_ = boost::interprocess::mapped_region(keyvi_file_.GetFileMapping(), boost::interprocess::read_only,
+                                                        offset, keyvi_file_.GetSparseArraySize(), 0, map_options);
 
     const std::streamoff transitionsOffset = offset + static_cast<int64_t>(keyvi_file_.GetSparseArraySize());
     TRACE("transitions start offset: %d", transitionsOffset);
-    transitions_region_ =
-        boost::interprocess::mapped_region(file_mapping_, boost::interprocess::read_only, transitionsOffset,
-                                           sizeof(uint16_t) * keyvi_file_.GetSparseArraySize(), 0, map_options);
+    transitions_region_ = boost::interprocess::mapped_region(
+        keyvi_file_.GetFileMapping(), boost::interprocess::read_only, transitionsOffset,
+        sizeof(uint16_t) * keyvi_file_.GetSparseArraySize(), 0, map_options);
 
     const auto advise = internal::MemoryMapFlags::FSAGetMemoryMapAdvices(loading_strategy);
 
@@ -111,11 +109,6 @@ class Automata final {
 
     labels_ = static_cast<unsigned char*>(labels_region_.get_address());
     transitions_compact_ = static_cast<uint16_t*>(transitions_region_.get_address());
-
-    if (load_value_store) {
-      value_store_reader_.reset(internal::ValueStoreFactory::MakeReader(
-          keyvi_file_.GetValueStoreType(), keyvi_file_.valueStoreStream(), &file_mapping_, loading_strategy));
-    }
   }
 
  public:
@@ -371,22 +364,18 @@ class Automata final {
   }
 
   internal::IValueStoreReader::attributes_t GetValueAsAttributeVector(uint64_t state_value) const {
-    assert(value_store_reader_);
-    return value_store_reader_->GetValueAsAttributeVector(state_value);
+    return keyvi_file_.GetValueStore()->GetValueAsAttributeVector(state_value);
   }
 
   std::string GetValueAsString(uint64_t state_value) const {
-    assert(value_store_reader_);
-    return value_store_reader_->GetValueAsString(state_value);
+    return keyvi_file_.GetValueStore()->GetValueAsString(state_value);
   }
 
   std::string GetRawValueAsString(uint64_t state_value) const {
-    assert(value_store_reader_);
-    return value_store_reader_->GetRawValueAsString(state_value);
+    return keyvi_file_.GetValueStore()->GetRawValueAsString(state_value);
   }
 
   std::string GetStatistics() const {
-    assert(value_store_reader_);
 
     std::ostringstream buf;
     buf << "General" << std::endl;
@@ -394,7 +383,7 @@ class Automata final {
     buf << std::endl << "Persistence" << std::endl;
     // boost::property_tree::write_json(buf, sparse_array_properties_, false);
     buf << std::endl << "Value Store" << std::endl;
-    buf << value_store_reader_->GetStatistics();
+    buf << keyvi_file_.GetValueStore()->GetStatistics();
     return buf.str();
   }
 
@@ -414,8 +403,6 @@ class Automata final {
 
  private:
   internal::KeyviFile keyvi_file_;
-  std::unique_ptr<internal::IValueStoreReader> value_store_reader_;
-  boost::interprocess::file_mapping file_mapping_;
   boost::interprocess::mapped_region labels_region_;
   boost::interprocess::mapped_region transitions_region_;
   unsigned char* labels_;
@@ -425,8 +412,7 @@ class Automata final {
   friend class ::keyvi::dictionary::DictionaryMerger;
 
   internal::IValueStoreReader* GetValueStore() const {
-    assert(value_store_reader_);
-    return value_store_reader_.get();
+    return keyvi_file_.GetValueStore();
   }
 
   inline uint64_t ResolvePointer(uint64_t starting_state, unsigned char c) const {

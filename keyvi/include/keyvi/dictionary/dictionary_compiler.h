@@ -143,7 +143,7 @@ class DictionaryCompiler final {
     value_store_->CloseFeeding();
     sorter_.sort();
     generator_ = GeneratorAdapter::CreateGenerator(size_of_keys_, params_, value_store_);
-    generator_->SetManifest(manifest_);
+    generator_->SetManifestFromString(manifest_);
 
     if (sorter_.size() > 0) {
       size_t number_of_items = sorter_.size();
@@ -222,21 +222,12 @@ class DictionaryCompiler final {
    * @param manifest as JSON string
    */
   void SetManifestFromString(const std::string& manifest) {
-    //SetManifest(keyvi::util::SerializationUtils::ReadJsonRecord(manifest));
-  }
-
-  /**
-   * Set a custom manifest to be embedded into the index file.
-   *
-   * @param manifest
-   */
-  void SetManifest(const boost::property_tree::ptree& manifest) {
     manifest_ = manifest;
 
     // if generator object is already there, set it otherwise cache it until it
     // is created
     if (generator_) {
-      generator_->SetManifest(manifest);
+      generator_->SetManifestFromString(manifest);
     }
   }
 
@@ -263,7 +254,7 @@ class DictionaryCompiler final {
   keyvi::util::parameters_t params_;
   ValueStoreT* value_store_;
   typename GeneratorAdapter::AdapterPtr generator_;
-  boost::property_tree::ptree manifest_ = boost::property_tree::ptree();
+  std::string manifest_;
   size_t count_ = 0;
   size_t size_of_keys_ = 0;
   bool sort_finalized_ = false;

@@ -106,6 +106,30 @@ class IValueStoreWriter {
   keyvi::util::parameters_t parameters_;
 };
 
+
+class IValueStoreMerger {
+ public:
+  explicit IValueStoreMerger(const std::vector<std::string>&) : IValueStoreWriter(keyvi::util::parameters_t()) {}
+
+  virtual ~IValueStoreMerger() {}
+
+  uint64_t GetValueId(size_t fileIndex, uint64_t oldIndex) { return 0; }
+
+  /**
+   * Get the weight for merging dictionaries.
+   *
+   * Note: for now only the fsa_value is given, in future this might change, so that also the payload is required.
+   *
+   * @param fsa_value
+   * @return weight to be used as inner weight
+   */
+  uint32_t GetMergeWeight(uint64_t fsa_value) { return 0; }
+
+ protected:
+  keyvi::util::parameters_t parameters_;
+};
+
+
 /**
  * Base class / Interface definition for reading from the value store.
  *
@@ -171,6 +195,8 @@ class IValueStoreReader {
 
   virtual const char* GetValueStorePayload() const { return 0; }
 };
+
+
 
 } /* namespace internal */
 } /* namespace fsa */

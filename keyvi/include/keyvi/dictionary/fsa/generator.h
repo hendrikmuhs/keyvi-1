@@ -318,15 +318,7 @@ class Generator final {
    *
    * @param manifest as JSON string
    */
-  inline void SetManifestFromString(const std::string& manifest) {
-  }
-
-  /**
-   * Set a custom manifest to be embedded into the index file.
-   *
-   * @param manifest
-   */
-  inline void SetManifest(const boost::property_tree::ptree& manifest) {  }
+  inline void SetManifestFromString(const std::string& manifest) { manifest_ = manifest; }
 
  private:
   size_t memory_limit_;
@@ -341,7 +333,7 @@ class Generator final {
   generator_state state_ = generator_state::FEEDING;
   OffsetTypeT start_state_ = 0;
   uint64_t number_of_states_ = 0;
-  //boost::property_tree::ptree manifest_ = boost::property_tree::ptree();
+  std::string manifest_;
   bool minimize_ = true;
 
   void WriteHeader(std::ostream& stream) {
