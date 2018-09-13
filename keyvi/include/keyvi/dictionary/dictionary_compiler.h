@@ -151,7 +151,7 @@ class DictionaryCompiler final {
     generator_ =
         GeneratorAdapter::template CreateGenerator<keyvi::dictionary::fsa::internal::SparseArrayPersistence<uint16_t>>(
             size_of_keys_, params_, value_store_);
-generator_->SetManifest(manifest_);
+    generator_->SetManifest(manifest_);
     if (sorter_.size() > 0) {
       size_t number_of_items = sorter_.size();
 
