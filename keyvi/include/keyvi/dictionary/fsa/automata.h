@@ -408,8 +408,8 @@ class Automata final {
   unsigned char* labels_;
   uint16_t* transitions_compact_;
 
-  template <typename, typename>
-  friend class ::keyvi::dictionary::DictionaryMerger;
+  template <keyvi::dictionary::fsa::internal::value_store_t>
+  friend class keyvi::dictionary::DictionaryMerger;
 
   internal::IValueStoreReader* GetValueStore() const {
     return keyvi_file_.GetValueStore();

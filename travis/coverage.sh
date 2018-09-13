@@ -1,8 +1,18 @@
 #!/usr/bin/env bash
-set -ev
+set -ex
+
+cd /io
+
+export CONF=coverage
+travis/build_linux.sh
+
+export PYTHON_VERSION=2.7.15
+travis/build_python.sh
+
+pip install coveralls-merge cpp-coveralls --upgrade
 
 coveralls   -r . -b build/ -i keyvi \
-            --gcov /usr/bin/gcov-4.8 --gcov-options '\-lp' \
+            --gcov-options '\-lp' \
             -E '.*/keyvi/3rdparty/.*' \
             -e python \
             -E '.*/keyvi/tests/.*' \
@@ -15,8 +25,9 @@ ln -s ../../../keyvi src/cpp/keyvi
 cd ..
 
 coveralls   -r . -b python/ -i python \
-            --gcov /usr/bin/gcov-4.8 --gcov-options '\-lp' \
-            -e python/src/cpp/keyvi/3rdparty -e build \
+            --gcov-options '\-lp' \
+            -e python/src/cpp/keyvi/3rdparty \
+            -E '.*/src/cpp/build-.*/.*' \
             -E '.*/autowrap_includes/autowrap_tools.hpp' \
             -E '.*/src/extra/attributes_converter.h' \
             -E '.*/_core.cpp' \
@@ -24,7 +35,5 @@ coveralls   -r . -b python/ -i python \
 
 # workaround: remove 'python' from source path before merge
 sed s/"python\/src\/cpp\/keyvi"/"keyvi"/g python.cov_report_tmp > python.cov_report
-
-export COVERALLS_REPO_TOKEN=${COVERALLS_REPO_TOKEN}
 
 coveralls-merge keyvi.cov_report python.cov_report

@@ -1,9 +1,7 @@
 #!/usr/bin/env bash
-set -ev
+set -ex
 
-# use python from pyenv
-PYENV_ROOT="$HOME/.pyenv"
-PATH="$PYENV_ROOT/bin:$PYENV_ROOT/shims:$PATH"
+pip install --user wheel twine --upgrade
 
 cd python
 if [ -n "$(ls -A wheelhouse)" ]; then

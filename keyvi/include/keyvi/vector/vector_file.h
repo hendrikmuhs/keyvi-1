@@ -66,8 +66,8 @@ class VectorFile {
 
     in_stream.seekg(KEYVI_VECTOR_BEGIN_LEN);
 
-    rapidjson::Document file_ptree;
-
+    if (static_cast<int>(value_store_type) !=
+        boost::lexical_cast<int>(file_ptree.get<std::string>(VALUE_STORE_TYPE_LABEl))) {
     util::SerializationUtils::ReadJsonRecord(in_stream, file_ptree);
     if (value_store_type != boost::lexical_cast<size_t>(file_ptree[VALUE_STORE_TYPE_LABEl].GetString())) {
       throw std::invalid_argument("wrong vector file");
@@ -100,7 +100,7 @@ class VectorFile {
     boost::property_tree::ptree file_ptree;
     file_ptree.put("file_version", "1");
     file_ptree.put(MANIFEST_LABEL, manifest);
-    file_ptree.put(VALUE_STORE_TYPE_LABEl, value_store->GetValueStoreType());
+    file_ptree.put(VALUE_STORE_TYPE_LABEl, static_cast<int>(value_store->GetValueStoreType()));
     file_ptree.put("index_version", "1");
 
     boost::property_tree::ptree index_ptree;
