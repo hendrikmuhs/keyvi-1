@@ -34,6 +34,9 @@
 #include "keyvi/index/index.h"
 #include "keyvi/testing/index_mock.h"
 
+#define ENABLE_TRACING
+#include "keyvi/dictionary/util/trace.h"
+
 inline std::string get_keyvimerger_bin() {
   boost::filesystem::path path{std::getenv("KEYVI_UNITTEST_BASEPATH")};
   path /= "keyvimerger";
@@ -46,7 +49,7 @@ inline std::string get_keyvimerger_bin() {
 namespace keyvi {
 namespace index {
 BOOST_AUTO_TEST_SUITE(IndexTests)
-
+/*
 // basic writer test, re-usable for testing different parameters
 void basic_writer_test(const keyvi::util::parameters_t& params = keyvi::util::parameters_t()) {
   using boost::filesystem::temp_directory_path;
@@ -206,7 +209,7 @@ BOOST_AUTO_TEST_CASE(index_reopen_deleted_keys) {
     BOOST_CHECK(index.Contains("babcde"));
   }
 }
-
+*/
 void index_with_deletes(const keyvi::util::parameters_t& params = keyvi::util::parameters_t()) {
   using boost::filesystem::temp_directory_path;
   using boost::filesystem::unique_path;
@@ -216,8 +219,13 @@ void index_with_deletes(const keyvi::util::parameters_t& params = keyvi::util::p
   {
     Index index(tmp_path.string(), params);
 
+    std::vector<std::string> x;
     for (int i = 0; i < 100; ++i) {
-      index.Set("a" + std::to_string(i), "{\"id\":" + std::to_string(i) + "}");
+      std::string key{"a" + std::to_string(i)};
+      TRACE("set key %s, pt: %p", key.c_str(), &key);
+      //x.push_back(std::move(key));
+      //TRACE("v pt: %p", &x.back());
+      index.Set(key, "{\"id\":" + std::to_string(i) + "}");
     }
     index.FlushAsync();
 
@@ -271,11 +279,11 @@ void index_with_deletes(const keyvi::util::parameters_t& params = keyvi::util::p
 BOOST_AUTO_TEST_CASE(index_delete_keys_defaults) {
   index_with_deletes({{"refresh_interval", "100"}, {KEYVIMERGER_BIN, get_keyvimerger_bin()}});
 }
-
+/*
 BOOST_AUTO_TEST_CASE(index_delete_keys_simple_merge_policy) {
   index_with_deletes({{"refresh_interval", "100"}, {KEYVIMERGER_BIN, get_keyvimerger_bin()}, {MERGE_POLICY, "simple"}});
 }
-
+*/
 BOOST_AUTO_TEST_SUITE_END()
 
 }  // namespace index

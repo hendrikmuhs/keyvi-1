@@ -27,6 +27,7 @@
 
 #include <map>
 #include <string>
+#include <utility>
 
 namespace keyvi {
 namespace dictionary {
@@ -41,6 +42,8 @@ struct key_value_pair {
   key_value_pair() : key(), value() {}
 
   key_value_pair(const KeyT& k, const ValueT& v) : key(k), value(v) {}
+
+  key_value_pair(KeyT&& k, ValueT&& v) : key(std::move(k)), value(std::move(v)) {}
 
   bool operator<(const key_value_pair kv) const { return key < kv.key; }
 

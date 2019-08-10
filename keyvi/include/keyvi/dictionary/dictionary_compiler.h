@@ -106,18 +106,27 @@ class DictionaryCompiler final {
   DictionaryCompiler& operator=(DictionaryCompiler const&) = delete;
   DictionaryCompiler(const DictionaryCompiler& that) = delete;
 
-  void Add(const std::string& input_key, typename ValueStoreT::value_t value = ValueStoreT::no_value) {
+  void Add(const std::string& input_key, const typename ValueStoreT::value_t& value = ValueStoreT::no_value) {
     if (generator_) {
       throw compiler_exception("You're not supposed to add more data once compilation is done!");
     }
 
     size_of_keys_ += input_key.size();
-    sorter_.push_back(key_value_t(std::move(input_key), RegisterValue(value)));
+    sorter_.push_back(std::move(key_value_t(input_key, RegisterValue(value))));
+  }
+
+  void Add(std::string&& input_key, const typename ValueStoreT::value_t& value = ValueStoreT::no_value) {
+    if (generator_) {
+      throw compiler_exception("You're not supposed to add more data once compilation is done!");
+    }
+
+    size_of_keys_ += input_key.size();
+    sorter_.push_back(std::move(key_value_t(std::move(input_key), RegisterValue(value))));
   }
 
 #ifdef Py_PYTHON_H
   template <typename StringType>
-  void __setitem__(StringType input_key, typename ValueStoreT::value_t value = ValueStoreT::no_value) {
+  void __setitem__(StringType input_key, const typename ValueStoreT::value_t& value = ValueStoreT::no_value) {
     return Add(input_key, value);
   }
 #endif
@@ -133,7 +142,21 @@ class DictionaryCompiler final {
                             false,     // minimization
                             true);     // deleted flag
 
-    sorter_.push_back(key_value_t(std::move(input_key), handle));
+    sorter_.push_back(std::move(key_value_t(input_key, std::move(handle))));
+  }
+
+  void Delete(std::string&& input_key) {
+    if (!stable_insert_) {
+      throw compiler_exception("delete only available when using stable_inserts option");
+    }
+
+    fsa::ValueHandle handle(0,         // offset of value
+                            count_++,  // counter(order)
+                            0,         // weight
+                            false,     // minimization
+                            true);     // deleted flag
+
+    sorter_.push_back(std::move(key_value_t(std::move(input_key), std::move(handle))));
   }
 
   /**
@@ -271,7 +294,7 @@ class DictionaryCompiler final {
    * @param value The Value
    * @return a handle that later needs to be passed to Add()
    */
-  fsa::ValueHandle RegisterValue(typename ValueStoreT::value_t value = ValueStoreT::no_value) {
+  fsa::ValueHandle RegisterValue(const typename ValueStoreT::value_t& value = ValueStoreT::no_value) {
     bool no_minimization = false;
     uint64_t value_idx = value_store_->AddValue(value, &no_minimization);
 

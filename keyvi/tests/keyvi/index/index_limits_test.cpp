@@ -31,6 +31,9 @@
 #include "keyvi/index/constants.h"
 #include "keyvi/index/index.h"
 
+#define ENABLE_TRACING
+#include "keyvi/dictionary/util/trace.h"
+
 inline std::string get_keyvimerger_bin() {
   boost::filesystem::path path{std::getenv("KEYVI_UNITTEST_BASEPATH")};
   path /= "keyvimerger";
@@ -68,8 +71,14 @@ BOOST_AUTO_TEST_CASE(filedescriptor_limit) {
                                      {"segment_compile_key_threshold", "10"},
                                      {"max_segments", "10"}});
 
+    std::string key{"a"};
+    std::vector<std::string>x;
+
     for (int i = 0; i < 5000; ++i) {
-      writer.Set("a", "{\"id\":" + std::to_string(i) + "}");
+      x.push_back("a");
+
+      TRACE("set key %s, pt: %p", key.c_str(), &key);
+      writer.Set(key, "{\"id\":" + std::to_string(i) + "}");
     }
     writer.Flush();
     BOOST_CHECK(writer.Contains("a"));

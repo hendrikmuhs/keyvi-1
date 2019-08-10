@@ -26,6 +26,7 @@
 #define KEYVI_DICTIONARY_SORT_IN_MEMORY_SORTER_H_
 
 #include <algorithm>
+#include <utility>
 #include <vector>
 
 #include "keyvi/dictionary/fsa/internal/constants.h"
@@ -51,6 +52,8 @@ class InMemorySorter final {
   explicit InMemorySorter(const sorter_param_t& params = sorter_param_t()) : params_(params) {}
 
   void push_back(const KeyValueT& kv) { key_values_.push_back(kv); }
+
+  void push_back(KeyValueT&& kv) { key_values_.push_back(std::move(kv)); }
 
   void sort() { std::sort(key_values_.begin(), key_values_.end()); }
 

@@ -33,6 +33,7 @@
 #include <ctime>
 #include <string>
 #include <thread>  //NOLINT
+#include <utility>
 #include <vector>
 
 #include <boost/filesystem.hpp>
@@ -87,6 +88,8 @@ class Index final : public internal::BaseIndexReader<internal::IndexWriterWorker
   }
 
   void Set(const std::string& key, const std::string& value) { Payload().Add(key, value); }
+
+  //void Set(std::string&& key, std::string&& value) { Payload().Add(std::move(key), std::move(value)); }
 
   void Delete(const std::string& key) { Payload().Delete(key); }
 
