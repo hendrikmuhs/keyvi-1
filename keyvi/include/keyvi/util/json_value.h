@@ -26,17 +26,16 @@
 #define KEYVI_UTIL_JSON_VALUE_H_
 
 #include <string>
+#include <vector>
 
+#include "msgpack.hpp"
 #include "rapidjson/document.h"
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/writer.h"
-
-#include "msgpack.hpp"
 // from 3rdparty/xchange: msgpack <-> rapidjson converter
-#include "msgpack/type/rapidjson.hpp"
-
 #include "keyvi/compression/compression_selector.h"
 #include "keyvi/util/msgpack_util.h"
+#include "msgpack/type/rapidjson.hpp"
 
 // #define ENABLE_TRACING
 #include "keyvi/dictionary/util/trace.h"
@@ -60,6 +59,19 @@ inline std::string DecodeJsonValue(const std::string& encoded_value) {
   rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
   json_document.Accept(writer);
   return buffer.GetString();
+}
+
+/** Decompresses (if needed) and decodes a json value stored in a JsonValueStore. */
+inline std::string DecodeJsonValue2(const std::string& encoded_value) {
+  compression::decompress_func_t decompressor = compression::decompressor_by_code(encoded_value);
+  std::string packed_string = decompressor(encoded_value);
+  TRACE("unpacking %s", packed_string.c_str());
+
+  msgpack::object_handle doc = msgpack::unpack(packed_string.data(), packed_string.size());
+  std::stringstream buffer;
+
+  buffer << doc.get();
+  return buffer.str();
 }
 
 /**
