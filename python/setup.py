@@ -1,7 +1,9 @@
+from distutils.dir_util import remove_tree
 from setuptools import setup, Extension
 import distutils.command.build as _build
 import distutils.command.bdist as _bdist
 import distutils.command.build_ext as _build_ext
+import distutils.command.clean as _clean
 import distutils.command.sdist as _sdist
 import json
 import os
@@ -17,10 +19,13 @@ from os import path
 
 pykeyvi_pyx = '_core.pyx'
 pykeyvi_cpp = '_core.cpp'
+pykeyvi_p_cpp = '_core_p.cpp'
 keyvi_cpp_source = '../keyvi'
 keyvi_cpp = 'src/cpp'
 keyvi_cpp_link = path.join(keyvi_cpp, 'keyvi')
 mac_os_static_libs_dir = 'mac_os_static_libs'
+keyvi_build_dir = path.join(keyvi_cpp, 'build-{}'.format(platform.platform()))
+here = os.path.abspath(os.path.dirname(__file__))
 
 try:
     cpu_count = multiprocessing.cpu_count()
@@ -30,8 +35,8 @@ except:
 #################
 
 VERSION_MAJOR = 0
-VERSION_MINOR = 3
-VERSION_PATCH = 3
+VERSION_MINOR = 5
+VERSION_PATCH = 2
 VERSION_DEV = 0
 IS_RELEASED = False
 
@@ -55,7 +60,6 @@ def run_once(f):
 
 
 def write_version_file():
-    here = os.path.abspath(os.path.dirname(__file__))
     version_file_path = os.path.join(here, 'src/py/keyvi/_version.py')
     content = """
 # THIS FILE IS GENERATED FROM KEYVI SETUP.PY
@@ -67,6 +71,9 @@ __version__ = '{}'
     with open(version_file_path, 'w') as f_out:
         f_out.write(content)
 
+def clean_pykeyvi_build_directory():
+    if os.path.exists(keyvi_build_dir):
+        remove_tree(keyvi_build_dir)
 
 def generate_pykeyvi_source():
     addons = glob.glob('src/addons/*')
@@ -76,9 +83,22 @@ def generate_pykeyvi_source():
     max_modification_time = max([path.getmtime(fn) for fn in addons + pxds + converter_files])
 
     if not path.exists(pykeyvi_cpp) or max_modification_time > path.getmtime(pykeyvi_cpp):
-        import autowrap.Main
-        autowrap.Main.run(pxds, addons, [converters], pykeyvi_pyx)
+        try:
+            import autowrap.Main
+            autowrap.Main.run(pxds, addons, [converters], pykeyvi_pyx)
+            # rewrite generated cpp to use std::shared_ptr instead of boost::shared_ptr
+            with open(pykeyvi_cpp, "rt") as fin:
+                with open(pykeyvi_p_cpp, "wt") as fout:
+                    for line in fin:
+                        if line.find("shared_ptr.hpp") > 0:
+                            continue
+                        fout.write(line.replace('boost::shared_ptr', 'std::shared_ptr'))
 
+        except:
+            if not path.exists(pykeyvi_cpp):
+                raise
+            else:
+                print ("Could not find autowrap, probably running from sdist environment")
 
 @contextmanager
 def symlink_keyvi():
@@ -201,7 +221,6 @@ with symlink_keyvi() as (pykeyvi_source_path, keyvi_source_path):
     autowrap_data_dir = "autowrap_includes"
 
     dictionary_sources = path.abspath(keyvi_cpp_link)
-    keyvi_build_dir = path.join(keyvi_cpp, 'build-{}'.format(platform.platform()))
 
     additional_compile_flags = ''
 
@@ -264,12 +283,19 @@ with symlink_keyvi() as (pykeyvi_source_path, keyvi_source_path):
     class sdist(_sdist.sdist):
 
         def run(self):
+            clean_pykeyvi_build_directory()
             generate_pykeyvi_source()
             _sdist.sdist.run(self)
 
     class bdist(custom_opts, _bdist.bdist):
         parent = _bdist.bdist
         user_options = _bdist.bdist.user_options + custom_user_options
+
+    class clean(_clean.clean):
+
+        def run(self):
+            clean_pykeyvi_build_directory()
+            _clean.clean.run(self)
 
     have_wheel = False
     try:
@@ -312,24 +338,30 @@ with symlink_keyvi() as (pykeyvi_source_path, keyvi_source_path):
     ext_modules = [Extension('keyvi._core',
                              include_dirs=[autowrap_data_dir],
                              language='c++',
-                             sources=[pykeyvi_cpp],
+                             sources=[pykeyvi_p_cpp],
                              library_dirs=link_library_dirs)]
 
     PACKAGE_NAME = 'keyvi'
+    with open(os.path.join(here, 'description.md'), "rt", encoding="utf-8") as desc_f:
+        long_desc = desc_f.read()
 
     install_requires = [
-        'msgpack-python>=0.5.6',
+        'msgpack>=1.0.0',
     ]
 
-    commands = {'build_ext': build_ext, 'sdist': sdist, 'build': build, 'bdist': bdist}
+    commands = {'build_ext': build_ext, 'sdist': sdist, 'build': build, 'bdist': bdist, 'clean': clean}
     if have_wheel:
         commands['bdist_wheel'] = bdist_wheel
+    for e in ext_modules:
+        e.cython_directives = {"embedsignature": True}
 
     write_version_file()
     setup(
         name=PACKAGE_NAME,
         version=VERSION,
         description='Python package for keyvi',
+        long_description=long_desc,
+        long_description_content_type="text/markdown",
         author='Hendrik Muhs',
         author_email='hendrik.muhs@gmail.com',
         license="ASL 2.0",
@@ -354,10 +386,10 @@ with symlink_keyvi() as (pykeyvi_source_path, keyvi_source_path):
             'Programming Language :: C++',
             'Programming Language :: Cython',
             'Programming Language :: Python',
-            'Programming Language :: Python :: 3.5',
             'Programming Language :: Python :: 3.6',
             'Programming Language :: Python :: 3.7',
             'Programming Language :: Python :: 3.8',
+            'Programming Language :: Python :: 3.9',
             'Programming Language :: Python :: Implementation :: CPython',
             'Programming Language :: Python :: Implementation :: PyPy',
             'Operating System :: MacOS :: MacOS X',

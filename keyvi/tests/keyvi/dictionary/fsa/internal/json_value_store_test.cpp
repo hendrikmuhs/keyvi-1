@@ -23,12 +23,13 @@
  *      Author: hendrik
  */
 
+#include "keyvi/dictionary/fsa/internal/json_value_store.h"
+
 #include <boost/filesystem.hpp>
 #include <boost/interprocess/file_mapping.hpp>
 #include <boost/test/unit_test.hpp>
 
 #include "keyvi/dictionary/fsa/internal/constants.h"
-#include "keyvi/dictionary/fsa/internal/json_value_store.h"
 #include "keyvi/dictionary/fsa/internal/value_store_properties.h"
 #include "keyvi/util/configuration.h"
 
@@ -74,7 +75,7 @@ BOOST_AUTO_TEST_CASE(minimization_largevalues) {
 
 BOOST_AUTO_TEST_CASE(minimization_largevalue_small_memory) {
   // combination of small value store and large values, spawning more than 1 chunk
-  JsonValueStore values(keyvi::util::parameters_t{{TEMPORARY_PATH_KEY, "/tmp"}, {"memory_limit", "50000"}});
+  JsonValueStore values(keyvi::util::parameters_t{{TEMPORARY_PATH_KEY, "/tmp"}, {"memory_limit", "500000"}});
   bool no_minimization = false;
   // create a value that almost fills the 1st chunk
   std::string padding_value = "{\"";
@@ -142,6 +143,7 @@ BOOST_AUTO_TEST_CASE(persistence) {
 
   BOOST_CHECK_EQUAL(value, reader.GetValueAsString(v));
   BOOST_CHECK_EQUAL("{\"mytestvalue2\":23}", reader.GetValueAsString(w));
+  BOOST_CHECK(reader.GetValueStoreType() == value_store_t::JSON);
 
   std::remove(filename.c_str());
 }

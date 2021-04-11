@@ -20,6 +20,7 @@
 
 #include <cstdio>
 #include <memory>
+#include <mutex>  //NOLINT
 #include <set>
 #include <string>
 #include <unordered_set>
@@ -43,6 +44,9 @@ class SegmentFriend;
 }
 class Segment final : public ReadOnlySegment {
  public:
+  using deleted_t = ReadOnlySegment::deleted_t;
+  using deleted_ptr_t = ReadOnlySegment::deleted_ptr_t;
+
   explicit Segment(const boost::filesystem::path& path, bool no_deletes = false)
       : ReadOnlySegment(path, false, !no_deletes),
         deleted_keys_for_write_(),
@@ -59,6 +63,7 @@ class Segment final : public ReadOnlySegment {
       : ReadOnlySegment(path, false, false),
         deleted_keys_for_write_(),
         deleted_keys_during_merge_for_write_(),
+        lazy_load_mutex_(),
         dictionary_loaded(false),
         deletes_loaded(true),
         in_merge_(false),
@@ -99,7 +104,7 @@ class Segment final : public ReadOnlySegment {
     return deleted_keys_for_write_.size() + deleted_keys_during_merge_for_write_.size();
   }
 
-  const std::shared_ptr<std::unordered_set<std::string>> DeletedKeys() {
+  const deleted_ptr_t DeletedKeys() {
     LazyLoadDeletedKeys();
     return ReadOnlySegment::DeletedKeys();
   }
@@ -179,8 +184,9 @@ class Segment final : public ReadOnlySegment {
   }
 
  private:
-  std::unordered_set<std::string> deleted_keys_for_write_;
-  std::unordered_set<std::string> deleted_keys_during_merge_for_write_;
+  deleted_t deleted_keys_for_write_;
+  deleted_t deleted_keys_during_merge_for_write_;
+  std::mutex lazy_load_mutex_;
   bool dictionary_loaded;
   bool deletes_loaded;
   bool in_merge_;
@@ -194,6 +200,7 @@ class Segment final : public ReadOnlySegment {
       : ReadOnlySegment(dictionary_properties, false, !no_deletes),
         deleted_keys_for_write_(),
         deleted_keys_during_merge_for_write_(),
+        lazy_load_mutex_(),
         dictionary_loaded(false),
         deletes_loaded(no_deletes),
         in_merge_(false),
@@ -203,29 +210,37 @@ class Segment final : public ReadOnlySegment {
   }
 
   inline void LazyLoadDictionary() {
+    // optimistic lock
     if (!dictionary_loaded) {
-      LoadDictionary();
-      dictionary_loaded = true;
+      std::lock_guard<std::mutex> lock(lazy_load_mutex_);
+      if (!dictionary_loaded) {
+        LoadDictionary();
+        dictionary_loaded = true;
+      }
     }
   }
 
   inline void LazyLoadDeletedKeys() {
+    // optimistic lock
     if (!deletes_loaded) {
-      LoadDeletedKeys();
+      std::lock_guard<std::mutex> lock(lazy_load_mutex_);
+      if (!deletes_loaded) {
+        LoadDeletedKeys();
 
-      // get a copy of the deleted keys for writing
-      if (ReadOnlySegment::HasDeletedKeys()) {
-        if (in_merge_) {
-          deleted_keys_during_merge_for_write_.insert(DeletedKeysDirect().begin(), DeletedKeysDirect().end());
-        } else {
-          deleted_keys_for_write_.insert(DeletedKeysDirect().begin(), DeletedKeysDirect().end());
+        // get a copy of the deleted keys for writing
+        if (ReadOnlySegment::HasDeletedKeys()) {
+          if (in_merge_) {
+            deleted_keys_during_merge_for_write_.insert(DeletedKeysDirect().begin(), DeletedKeysDirect().end());
+          } else {
+            deleted_keys_for_write_.insert(DeletedKeysDirect().begin(), DeletedKeysDirect().end());
+          }
         }
+        deletes_loaded = true;
       }
-      deletes_loaded = true;
     }
   }
 
-  void SaveDeletedKeys(const std::string& filename, const std::unordered_set<std::string>& deleted_keys) {
+  void SaveDeletedKeys(const std::string& filename, const deleted_t& deleted_keys) {
     // write to swap file, than rename it
     {
       std::ofstream out_stream(deleted_keys_swap_filename_.string(), std::ios::binary);

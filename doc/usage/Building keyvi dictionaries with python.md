@@ -2,17 +2,17 @@
 
 The compiler is also available from python keyvi:
 
-    import keyvi
-    compiler = keyvi.KeyOnlyDictionaryCompiler()
+    from keyvi.compiler import KeyOnlyDictionaryCompiler
+    compiler = KeyOnlyDictionaryCompiler()
 
     # repeat for every key
     compiler.Add("foo")
     
     # finally compile
     compiler.Compile()
-    compiler.WriteToFile("/tmp/test.keyvi")
+    compiler.WriteToFile("/tmp/test.kv")
 
-Other available Compiler in keyvi
+Other available Compiler in `keyvi.compiler`
 
 type              | details
 ----------------- | --------------------------------------------------------------------------------------------- 

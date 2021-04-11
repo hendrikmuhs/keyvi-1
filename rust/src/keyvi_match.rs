@@ -16,7 +16,6 @@
  * limitations under the License.
  */
 
-
 /*
  *  keyvi_match.rs
  *
@@ -25,11 +24,12 @@
  *          Subu <subu@cliqz.com>
  */
 
-
-use keyvi_string::KeyviString;
-use bindings::*;
+use std::slice;
 
 use serde_json;
+
+use bindings::*;
+use keyvi_string::KeyviString;
 
 pub struct KeyviMatch {
     match_ptr_: *mut root::keyvi_match,
@@ -37,7 +37,9 @@ pub struct KeyviMatch {
 
 impl KeyviMatch {
     pub fn new(match_ptr: *mut root::keyvi_match) -> KeyviMatch {
-        KeyviMatch { match_ptr_: match_ptr }
+        KeyviMatch {
+            match_ptr_: match_ptr,
+        }
     }
 
     pub fn get_value(&self) -> serde_json::Value {
@@ -48,6 +50,20 @@ impl KeyviMatch {
     pub fn get_value_as_string(&self) -> String {
         let c_buf = unsafe { root::keyvi_match_get_value_as_string(self.match_ptr_) };
         KeyviString::new(c_buf).to_owned()
+    }
+
+    pub fn get_msgpacked_value(&self) -> Vec<u8> {
+        let kv_bytes = unsafe { root::keyvi_match_get_msgpacked_value(self.match_ptr_) };
+        let msgpacked_value = if kv_bytes.data_size == 0 {
+            Vec::new()
+        } else {
+            unsafe {
+                slice::from_raw_parts(kv_bytes.data_ptr, kv_bytes.data_size as usize).to_vec()
+            }
+        };
+        unsafe { root::keyvi_bytes_destroy(kv_bytes) };
+
+        msgpacked_value
     }
 
     pub fn is_empty(&self) -> bool {

@@ -37,13 +37,6 @@
 
 #include <boost/functional/hash.hpp>
 #include <boost/lexical_cast.hpp>
-#include "rapidjson/document.h"
-#include "rapidjson/stringbuffer.h"
-#include "rapidjson/writer.h"
-
-#include "msgpack.hpp"
-// from 3rdparty/xchange: msgpack <-> rapidjson converter
-#include "msgpack/type/rapidjson.hpp"
 
 #include "keyvi/compression/compression_selector.h"
 #include "keyvi/dictionary/dictionary_properties.h"
@@ -57,6 +50,7 @@
 #include "keyvi/dictionary/fsa/internal/value_store_types.h"
 #include "keyvi/util/configuration.h"
 #include "keyvi/util/json_value.h"
+#include "msgpack.hpp"
 
 // #define ENABLE_TRACING
 #include "keyvi/dictionary/util/trace.h"
@@ -96,7 +90,7 @@ class JsonValueStoreMinimizationBase : public JsonValueStoreBase {
   explicit JsonValueStoreMinimizationBase(const keyvi::util::parameters_t& parameters = keyvi::util::parameters_t())
       : parameters_(parameters),
         hash_(keyvi::util::mapGetMemory(parameters, MEMORY_LIMIT_KEY, DEFAULT_MEMORY_LIMIT_VALUE_STORE)) {
-    temporary_directory_ = parameters_[TEMPORARY_PATH_KEY];
+    temporary_directory_ = keyvi::util::mapGetTemporaryPath(parameters_);
 
     temporary_directory_ /= boost::filesystem::unique_path("dictionary-fsa-json_value_store-%%%%-%%%%-%%%%-%%%%");
     boost::filesystem::create_directory(temporary_directory_);
@@ -141,8 +135,7 @@ class JsonValueStore final : public JsonValueStoreMinimizationBase {
     std::string float_mode = keyvi::util::mapGet<std::string>(parameters_, SINGLE_PRECISION_FLOAT_KEY, {});
 
     if (float_mode == "single") {
-      // set single precision float mode
-      msgpack_buffer_.set_single_precision_float();
+      single_precision_float_ = true;
     }
 
     compressor_.reset(compression::compression_strategy(compressor));
@@ -160,10 +153,8 @@ class JsonValueStore final : public JsonValueStoreMinimizationBase {
    * todo: performance improvements?
    */
   uint64_t AddValue(const value_t& value, bool* no_minimization) {
-    msgpack_buffer_.clear();
-
     keyvi::util::EncodeJsonValue(long_compress_, short_compress_, &msgpack_buffer_, &string_buffer_, value,
-                                 compression_threshold_);
+                                 single_precision_float_, compression_threshold_);
 
     ++number_of_values_;
 
@@ -214,11 +205,12 @@ class JsonValueStore final : public JsonValueStoreMinimizationBase {
   std::unique_ptr<compression::CompressionStrategy> raw_compressor_;
   std::function<void(compression::buffer_t*, const char*, size_t)> long_compress_;
   std::function<void(compression::buffer_t*, const char*, size_t)> short_compress_;
+  bool single_precision_float_ = false;
   size_t compression_threshold_;
   bool minimize_ = true;
 
   compression::buffer_t string_buffer_;
-  keyvi::util::msgpack_buffer msgpack_buffer_;
+  msgpack::sbuffer msgpack_buffer_;
 
  private:
   uint64_t CreateNewValue() {

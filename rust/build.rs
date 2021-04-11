@@ -16,7 +16,6 @@
  * limitations under the License.
  */
 
-
 /*
  *  build.rs
  *
@@ -25,31 +24,54 @@
  *          Subu <subu@cliqz.com>
  */
 
-
 extern crate bindgen;
 extern crate cmake;
 
 use std::env;
 use std::path::PathBuf;
+
 use cmake::Config;
 
 fn main() {
-    let dst = Config::new("keyvi_core/")
-        .build_target("keyvi_c")
-        .build();
+    let dst = Config::new("keyvi_core/").build_target("keyvi_c").build();
 
     // Tell cargo to tell rustc to link keyvi
     println!("cargo:rustc-link-lib=dylib=keyvi_c");
-    println!("cargo:rustc-link-search=native={}", dst.join("build").display());
+    println!(
+        "cargo:rustc-link-search=native={}",
+        dst.join("build").display()
+    );
 
     println!("Starting to generate bindings..");
 
     let bindings = bindgen::Builder::default()
         // The input header we would like to generate bindings for.
         .header("keyvi_core/keyvi/include/keyvi/c_api/c_api.h")
-        .clang_arg("-x").clang_arg("c++")
+        .clang_arg("-x")
+        .clang_arg("c++")
         .enable_cxx_namespaces()
         .layout_tests(true)
+        .whitelist_function("keyvi_bytes_destroy")
+        .whitelist_function("keyvi_string_destroy")
+        .whitelist_function("keyvi_create_dictionary")
+        .whitelist_function("keyvi_dictionary_destroy")
+        .whitelist_function("keyvi_dictionary_get")
+        .whitelist_function("keyvi_dictionary_get_all_items")
+        .whitelist_function("keyvi_dictionary_get_fuzzy")
+        .whitelist_function("keyvi_dictionary_get_multi_word_completions")
+        .whitelist_function("keyvi_dictionary_get_prefix_completions")
+        .whitelist_function("keyvi_dictionary_get_size")
+        .whitelist_function("keyvi_dictionary_get_statistics")
+        .whitelist_function("keyvi_match_destroy")
+        .whitelist_function("keyvi_match_get_matched_string")
+        .whitelist_function("keyvi_match_get_msgpacked_value")
+        .whitelist_function("keyvi_match_get_score")
+        .whitelist_function("keyvi_match_get_value_as_string")
+        .whitelist_function("keyvi_match_is_empty")
+        .whitelist_function("keyvi_match_iterator_dereference")
+        .whitelist_function("keyvi_match_iterator_destroy")
+        .whitelist_function("keyvi_match_iterator_empty")
+        .whitelist_function("keyvi_match_iterator_increment")
         // Finish the builder and generate the bindings.
         .generate()
         // Unwrap the Result and panic on failure.
