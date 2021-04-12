@@ -30,6 +30,13 @@
 #include "rapidjson/document.h"
 #include "rapidjson/writer.h"
 
+#if defined(_WIN32)
+// windows.h defines GetObject which clashes in rapidjson
+// see https://github.com/Tencent/rapidjson/issues/1448
+#pragma push_macro("GetObject")
+#undef GetObject
+#endif
+
 /**
  * Utility classes for msgpack.
  *
@@ -149,5 +156,9 @@ inline void MsgPackDump(Writer* writer, const msgpack::object& o) {
 
 } /* namespace util */
 } /* namespace keyvi */
+
+#if defined(_WIN32)
+#pragma pop_macro("GetObject")
+#endif
 
 #endif  // KEYVI_UTIL_MSGPACK_UTIL_H_
