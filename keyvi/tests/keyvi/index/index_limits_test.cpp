@@ -22,7 +22,8 @@
  *  Created on: Jan 13, 2017
  *      Author: hendrik
  */
-
+#if defined(_WIN32)
+#else
 #include <sys/resource.h>
 
 #include <boost/filesystem.hpp>
@@ -88,6 +89,6 @@ BOOST_AUTO_TEST_CASE(filedescriptor_limit) {
 }
 
 BOOST_AUTO_TEST_SUITE_END()
-
 }  // namespace index
 }  // namespace keyvi
+#endif
