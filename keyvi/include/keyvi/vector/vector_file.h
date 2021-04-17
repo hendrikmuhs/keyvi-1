@@ -30,6 +30,7 @@
 #include <memory>
 #include <string>
 
+#undef GetObject
 #include "rapidjson/document.h"
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/writer.h"

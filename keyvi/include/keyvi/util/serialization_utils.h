@@ -32,6 +32,7 @@
 
 #include <boost/lexical_cast.hpp>
 
+#undef GetObject
 #include "rapidjson/document.h"
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/writer.h"

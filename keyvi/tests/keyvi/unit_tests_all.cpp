@@ -32,6 +32,7 @@
 #include <iostream>
 
 #include <boost/filesystem.hpp>
+#include <boost/process.hpp>
 #include <boost/system/error_code.hpp>
 #include <boost/test/unit_test.hpp>
 
@@ -46,6 +47,7 @@ int main(int argc, char* argv[], char* envp[]) {
   std::cout << "Running unit tests from path: " << base_path.string() << std::endl;
 
   // set an environment variable, to be used in tests
-  setenv("KEYVI_UNITTEST_BASEPATH", base_path.string().c_str(), 1);
+  boost::process::environment env = boost::this_process::environment();
+  env["KEYVI_UNITTEST_BASEPATH"] = base_path.string().c_str();
   return boost::unit_test::unit_test_main(&init_unit_test, argc, argv);
 }

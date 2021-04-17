@@ -30,6 +30,8 @@
 #include "keyvi/compression/compression_selector.h"
 #include "keyvi/util/msgpack_util.h"
 #include "msgpack.hpp"
+
+#undef GetObject
 #include "rapidjson/document.h"
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/writer.h"
