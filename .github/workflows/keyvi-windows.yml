@@ -42,14 +42,14 @@ jobs:
         run: |
             $Url = "https://zlib.net/zlib-1.2.11.tar.gz"
             (New-Object System.Net.WebClient).DownloadFile($Url, "$env:TEMP\zlib.tar.gz")
-            7z.exe x "$env:TEMP\zlib.tar.gz" -o"$env:TEMP\zlib" -y | Out-Null
+            7z.exe x "$env:TEMP\zlib.tar.gz" -o"C:\\hostedtoolcache\\windows\\zlib" -y | Out-Null
       - name: build zlib with cmake
         uses: lukka/run-cmake@v3
         with:
           cmakeListsOrSettingsJson: CMakeListsTxtAdvanced
-          cmakeListsTxtPath: '$env:TEMP\zlib\CMakeLists.txt'
+          cmakeListsTxtPath: 'C:\\hostedtoolcache\\windows\\zlib'
           buildWithCMake: true
-          buildDirectory: '$env:TEMP\zlib\build'
+          buildDirectory: 'C:\\hostedtoolcache\\windows\\zlib\\build'
 
 
       - name: checkout from git
