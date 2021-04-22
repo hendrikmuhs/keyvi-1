@@ -1,0 +1,62 @@
+# Build on Windows
+
+name: Build keyvi
+
+# Controls when the action will run.
+on:
+  # Triggers the workflow on push or pull request events but only for the master branch
+  push:
+  pull_request:
+    branches: [ master ]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ${{matrix.os}}
+    name:  ${{ matrix.type }} on ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        type: ['Release', 'Debug']
+        os: ['windows-latest']
+    steps:
+      - name: Cache Boost
+        id: cache-boost
+        uses: actions/cache@v2.1.3
+        with:
+          path: "C:\\hostedtoolcache\\windows\\Boost"
+          key: ${{ matrix.os }}-windows-boost
+      - name: Install Boost
+        if: steps.cache-boost.outputs.cache-hit != 'true'
+        run: |
+            $Url = "https://sourceforge.net/projects/boost/files/boost-binaries/1.75.0/boost_1_75_0-msvc-14.2-32.exe"
+            (New-Object System.Net.WebClient).DownloadFile($Url, "$env:TEMP\boost.exe")
+            Start-Process -Wait -FilePath "$env:TEMP\boost.exe" "/SILENT","/SP-","/SUPPRESSMSGBOXES","/DIR=C:\\hostedtoolcache\\windows\\Boost"
+      - name: Setup Boost Environment
+        run: |
+          echo "BOOST_ROOT=C:\\hostedtoolcache\windows\\Boost" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          echo "BOOST_LIBRARYDIR=C:\\hostedtoolcache\\windows\\Boost\\lib32-msvc-14.2" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: checkout from git
+        uses: actions/checkout@v2
+
+#      - name: ccache
+#        uses: hendrikmuhs/ccache-action@v1
+#       with:
+#         key: ${{ matrix.os }}-${{ matrix.type }}
+
+      - name: build with cmake
+        uses: lukka/run-cmake@v3
+        with:
+          cmakeListsOrSettingsJson: CMakeListsTxtAdvanced
+          cmakeListsTxtPath: '${{ github.workspace }}/CMakeLists.txt'
+          cmakeAppendedArgs: '-DCMAKE_BUILD_TYPE=${{ matrix.type }} -D CMAKE_C_COMPILER_LAUNCHER=ccache -D CMAKE_CXX_COMPILER_LAUNCHER=ccache'
+          buildWithCMake: true
+          buildDirectory: '${{ github.workspace }}/build'
+
+      - name: Unit tests
+        id: unit_tests
+        run: |
+         build/unit_test_all
