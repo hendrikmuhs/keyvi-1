@@ -51,7 +51,6 @@ jobs:
             (New-Object System.Net.WebClient).DownloadFile($Url, "$env:TEMP\zlib.tar.gz")
             7z.exe x "$env:TEMP\zlib.tar.gz" -o"$env:TEMP\zlibArchive" -y | Out-Null
             7z.exe x "$env:TEMP\zlibArchive" -o"C:\\hostedtoolcache\\windows\\zlib" -y | Out-Null
-            dir "C:\\hostedtoolcache\\windows\\zlib\\zlib-1.2.11\\"
       - name: build zlib with cmake
         if: steps.cache-zlib.outputs.cache-hit != 'true'
         uses: lukka/run-cmake@v3
