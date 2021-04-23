@@ -52,8 +52,10 @@ jobs:
           cmakeListsTxtPath: 'C:\\hostedtoolcache/windows/zlib/zlib-1.2.11/CMakeLists.txt'
           buildWithCMake: true
           buildDirectory: 'C:\\hostedtoolcache/windows/zlib/zlib-1.2.11/build'
-          cmakeAppendedArgs: --target install
-
+      - name: install zlib
+        run: |
+            cd C:\\hostedtoolcache\\windows\\zlib\\zlib-1.2.11\\build
+            cmake --build . --config Release --target INSTALL
 
       - name: checkout from git
         uses: actions/checkout@v2
