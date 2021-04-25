@@ -114,4 +114,5 @@ jobs:
       - name: Unit tests
         id: unit_tests
         run: |
-         build\\Release\\unit_test_all.exe
+            dir build\Release
+            build\Release\unit_test_all.exe
