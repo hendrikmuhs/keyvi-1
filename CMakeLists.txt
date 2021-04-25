@@ -17,39 +17,42 @@ set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${CMAKE_CURRENT_SOURCE_DIR}/cmake_mo
 
 # configure C++11
 set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-# keyvi specific compile options, definitions and flags
-set (_KEVYI_COMPILE_OPTIONS "-Wall")
 set (_KEYVI_COMPILE_DEFINITIONS "RAPIDJSON_HAS_STDSTRING")
-
-if(NOT ${ARCHITECTURE} STREQUAL "aarch64")
-    set (_KEYVI_CXX_FLAGS "-msse4.2")
-endif()
-
 set (_OS_LIBRARIES "")
 
-# OSX specifics
-if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-    set (_KEYVI_COMPILE_DEFINITIONS "${_KEYVI_COMPILE_DEFINITIONS} OS_MACOSX")
-    set (_KEYVI_CXX_FLAGS "${_KEYVI_CXX_FLAGS} -mmacosx-version-min=10.9")
-endif()
-
-# build type specific settings
+# compiler specific settings
 if(MSVC)
 else()
     set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -ggdb3")
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -DNDEBUG")
     set(CMAKE_CXX_FLAGS_COVERAGE "${CMAKE_CXX_FLAGS_DEBUG} -O0 --coverage")
+
+    if (CMAKE_BUILD_TYPE_UPPER MATCHES COVERAGE)
+        set(_KEYVI_LINK_LIBRARIES_DYNAMIC "${_KEYVI_LINK_LIBRARIES_DYNAMIC} gcov")
+        set(_KEYVI_LINK_FLAGS "--coverage")
+    endif (CMAKE_BUILD_TYPE_UPPER MATCHES COVERAGE)
+
+    # OSX specifics
+    if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+        set (_KEYVI_COMPILE_DEFINITIONS "${_KEYVI_COMPILE_DEFINITIONS} OS_MACOSX")
+        set (_KEYVI_CXX_FLAGS "${_KEYVI_CXX_FLAGS} -mmacosx-version-min=10.9")
+    endif()
+
+    if(NOT ${ARCHITECTURE} STREQUAL "aarch64")
+        set (_KEYVI_CXX_FLAGS "-msse4.2")
+    endif()
+
+    # keyvi specific compile options, definitions and flags
+    set (_KEVYI_COMPILE_OPTIONS "-Wall")
 endif()
+
 # link libraries
 set(_KEYVI_LINK_LIBRARIES_STATIC "")
 set(_KEYVI_LINK_LIBRARIES_DYNAMIC "")
 
-if (CMAKE_BUILD_TYPE_UPPER MATCHES COVERAGE)
-    set(_KEYVI_LINK_LIBRARIES_DYNAMIC "${_KEYVI_LINK_LIBRARIES_DYNAMIC} gcov")
-    set(_KEYVI_LINK_FLAGS "--coverage")
-endif (CMAKE_BUILD_TYPE_UPPER MATCHES COVERAGE)
 
 #### Dependencies ####
 
@@ -219,7 +222,7 @@ add_custom_target(bindings
 string(REPLACE ";" " " _KEYVI_INCLUDES "${KEYVI_INCLUDES}")
 
 # compile flags
-set(_KEYVI_CXX_FLAGS_ALL "${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE_UPPER}} ${_KEYVI_CXX_FLAGS} ${_KEVYI_COMPILE_OPTIONS} -std=c++11")
+set(_KEYVI_CXX_FLAGS_ALL "${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE_UPPER}} ${_KEYVI_CXX_FLAGS} ${_KEVYI_COMPILE_OPTIONS}")
 
 configure_file(keyvi/flags.cmake keyvi/flags)
 

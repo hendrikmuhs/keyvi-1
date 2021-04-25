@@ -19,7 +19,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        type: ['Release', 'Debug']
+        type: ['Release']
         os: ['windows-latest']
     env:
         BOOST_VERSION: "1.75.0"
