@@ -102,7 +102,7 @@ jobs:
         with:
           cmakeListsOrSettingsJson: CMakeListsTxtAdvanced
           cmakeListsTxtPath: '${{ github.workspace }}/CMakeLists.txt'
-          cmakeAppendedArgs: '-DCMAKE_BUILD_TYPE=${{ matrix.type }} -DBOOST_ROOT=${{ env.BOOST_ROOT }} -DBOOST_INCLUDEDIR=${{ env.BOOST_INCLUDEDIR }} -DBOOST_LIBRARYDIR=${{ env.BOOST_LIBRARYDIR }}'
+          cmakeAppendedArgs: '-DCMAKE_BUILD_TYPE=${{ matrix.type }} -DBOOST_ROOT=${{ env.BOOST_ROOT }} -DBOOST_INCLUDEDIR=${{ env.BOOST_INCLUDEDIR }} -DBOOST_LIBRARYDIR=${{ env.BOOST_LIBRARYDIR }} -DSnappy_INCLUDE_DIR="C:\Program Files (x86)\Snappy\include" -DSnappy_LIBRARY="c:\Program Files (x86)\Snappy\lib\snappy.lib'
           buildWithCMake: true
           buildDirectory: '${{ github.workspace }}/build'
 
