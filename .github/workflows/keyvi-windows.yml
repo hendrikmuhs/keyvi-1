@@ -108,7 +108,7 @@ jobs:
           buildDirectory: '${{ github.workspace }}/build'
       - name: build
         run: |
-            cd $GITHUB_WORKSPACE/build
+            cd build
             cmake --build . --config Release
 
 #      - name: ccache
