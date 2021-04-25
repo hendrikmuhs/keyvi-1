@@ -21,16 +21,16 @@ jobs:
       matrix:
         type: ['Release', 'Debug']
         os: ['windows-latest']
+    env:
+        BOOST_VERSION: "1.75.0"
+        BOOST_DOWNLOAD: "1.75.0/boost_1_75_0-msvc-14.2-64.exe"
+        BOOST_ROOT: "C:\\hostedtoolcache\\windows\\Boost"
+        BOOST_LIBRARYDIR: "C:\\hostedtoolcache\\windows\\Boost\\lib64-msvc-14.2"
+        BOOST_INCLUDEDIR: "C:\\hostedtoolcache\\windows\\Boost\\boost"
     steps:
       - name: Cache Boost
         id: cache-boost
         uses: actions/cache@v2.1.3
-        env:
-          BOOST_VERSION: "1.75.0"
-          BOOST_DOWNLOAD: "1.75.0/boost_1_75_0-msvc-14.2-64.exe"
-          BOOST_ROOT: "C:\\hostedtoolcache\\windows\\Boost"
-          BOOST_LIBRARYDIR: "C:\\hostedtoolcache\\windows\\Boost\\lib64-msvc-14.2"
-          BOOST_INCLUDEDIR: "C:\\hostedtoolcache\\windows\\Boost\\boost"
         with:
           path: "C:\\hostedtoolcache\\windows\\Boost"
           key: ${{ matrix.os }}-windows-boost-${{ env.BOOST_VERSION }}
@@ -38,7 +38,7 @@ jobs:
         id: boost-env
         if: steps.cache-boost.outputs.cache-hit != 'true'
         run: |
-            $Url = "https://sourceforge.net/projects/boost/files/boost-binaries/${{ steps.cache-boost.env.BOOST_DOWNLOAD }}"
+            $Url = "https://sourceforge.net/projects/boost/files/boost-binaries/${{ env.BOOST_DOWNLOAD }}"
             (New-Object System.Net.WebClient).DownloadFile($Url, "$env:TEMP\boost.exe")
             Start-Process -Wait -FilePath "$env:TEMP\boost.exe" "/SILENT","/SP-","/SUPPRESSMSGBOXES","/DIR=C:\\hostedtoolcache\\windows\\Boost"
       - name: Cache Zlib
@@ -104,9 +104,9 @@ jobs:
           cmakeListsTxtPath: '${{ github.workspace }}/CMakeLists.txt'
           cmakeAppendedArgs: |
               -DCMAKE_BUILD_TYPE=${{ matrix.type }}
-              -DBOOST_ROOT=${{ steps.cache-boost.env.BOOST_ROOT }}
-              -DBOOST_INCLUDEDIR=${{ steps.cache-boost.env.BOOST_INCLUDEDIR }}
-              -DBOOST_LIBRARYDIR=${{ steps.cache-boost.env.BOOST_LIBRARYDIR }}
+              -DBOOST_ROOT=${{ env.BOOST_ROOT }}
+              -DBOOST_INCLUDEDIR=${{ env.BOOST_INCLUDEDIR }}
+              -DBOOST_LIBRARYDIR=${{ env.BOOST_LIBRARYDIR }}
           buildWithCMake: true
           buildDirectory: '${{ github.workspace }}/build'
 
