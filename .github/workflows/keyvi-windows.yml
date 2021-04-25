@@ -33,12 +33,12 @@ jobs:
           BOOST_INCLUDEDIR: "C:\\hostedtoolcache\\windows\\Boost\\boost"
         with:
           path: "C:\\hostedtoolcache\\windows\\Boost"
-          key: ${{ matrix.os }}-windows-boost-$${{ env.BOOST_VERSION }}
+          key: ${{ matrix.os }}-windows-boost-${{ env.BOOST_VERSION }}
       - name: Install Boost
         id: boost-env
         if: steps.cache-boost.outputs.cache-hit != 'true'
         run: |
-            $Url = "https://sourceforge.net/projects/boost/files/boost-binaries/${{ steps.cache-boost.BOOST_DOWNLOAD }}"
+            $Url = "https://sourceforge.net/projects/boost/files/boost-binaries/${{ steps.cache-boost.env.BOOST_DOWNLOAD }}"
             (New-Object System.Net.WebClient).DownloadFile($Url, "$env:TEMP\boost.exe")
             Start-Process -Wait -FilePath "$env:TEMP\boost.exe" "/SILENT","/SP-","/SUPPRESSMSGBOXES","/DIR=C:\\hostedtoolcache\\windows\\Boost"
       - name: Cache Zlib
@@ -104,9 +104,9 @@ jobs:
           cmakeListsTxtPath: '${{ github.workspace }}/CMakeLists.txt'
           cmakeAppendedArgs: |
               -DCMAKE_BUILD_TYPE=${{ matrix.type }}
-              -DBOOST_ROOT=${{ steps.cache-boost.BOOST_ROOT }}
-              -DBOOST_INCLUDEDIR=${{ steps.cache-boost.BOOST_INCLUDEDIR }}
-              -DBOOST_LIBRARYDIR=${{ steps.cache-boost.BOOST_LIBRARYDIR }}
+              -DBOOST_ROOT=${{ steps.cache-boost.env.BOOST_ROOT }}
+              -DBOOST_INCLUDEDIR=${{ steps.cache-boost.env.BOOST_INCLUDEDIR }}
+              -DBOOST_LIBRARYDIR=${{ steps.cache-boost.env.BOOST_LIBRARYDIR }}
           buildWithCMake: true
           buildDirectory: '${{ github.workspace }}/build'
 
