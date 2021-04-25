@@ -29,13 +29,12 @@ jobs:
           path: "C:\\hostedtoolcache\\windows\\Boost"
           key: ${{ matrix.os }}-windows-boost
       - name: Install Boost
+        id: boost-env
         if: steps.cache-boost.outputs.cache-hit != 'true'
         run: |
             $Url = "https://sourceforge.net/projects/boost/files/boost-binaries/1.75.0/boost_1_75_0-msvc-14.2-64.exe"
             (New-Object System.Net.WebClient).DownloadFile($Url, "$env:TEMP\boost.exe")
             Start-Process -Wait -FilePath "$env:TEMP\boost.exe" "/SILENT","/SP-","/SUPPRESSMSGBOXES","/DIR=C:\\hostedtoolcache\\windows\\Boost"
-      - name: Setup Boost Environment
-        id: boost-env
         env:
           BOOST_ROOT: "C:\\hostedtoolcache\\windows\\Boost"
           BOOST_LIBRARYDIR: "C:\\hostedtoolcache\\windows\\Boost\\lib64-msvc-14.2"
