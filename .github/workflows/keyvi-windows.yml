@@ -114,5 +114,5 @@ jobs:
       - name: Unit tests
         id: unit_tests
         run: |
-            dir build\Release
-            build\Release\unit_test_all.exe --log_level=test_suite
+            cd build\Release
+            unit_test_all.exe --log_level=test_suite
