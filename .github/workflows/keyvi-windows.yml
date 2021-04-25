@@ -33,7 +33,7 @@ jobs:
           BOOST_INCLUDEDIR: "C:\\hostedtoolcache\\windows\\Boost\\boost"
         with:
           path: "C:\\hostedtoolcache\\windows\\Boost"
-          key: ${{ matrix.os }}-windows-boost-$${{ BOOST_VERSION }}
+          key: ${{ matrix.os }}-windows-boost-$${{ env.BOOST_VERSION }}
       - name: Install Boost
         id: boost-env
         if: steps.cache-boost.outputs.cache-hit != 'true'
