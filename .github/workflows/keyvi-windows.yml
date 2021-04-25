@@ -110,6 +110,8 @@ jobs:
         run: |
             cd build
             cmake --build . --config Release
+            dir
+            dir Release
 
 #      - name: ccache
 #        uses: hendrikmuhs/ccache-action@v1
