@@ -110,24 +110,8 @@ jobs:
         run: |
             cd build
             cmake --build . --config Release
-            dir
-            dir Release
 
-#      - name: ccache
-#        uses: hendrikmuhs/ccache-action@v1
-#       with:
-#         key: ${{ matrix.os }}-${{ matrix.type }}
-
-#      - name: build with cmake
-#        uses: lukka/run-cmake@v3
-#        with:
-#          cmakeListsOrSettingsJson: CMakeListsTxtAdvanced
-#          cmakeListsTxtPath: '${{ github.workspace }}/CMakeLists.txt'
-#          cmakeAppendedArgs: '-DCMAKE_BUILD_TYPE=${{ matrix.type }} -D CMAKE_C_COMPILER_LAUNCHER=ccache -D CMAKE_CXX_COMPILER_LAUNCHER=ccache'
-#          buildWithCMake: true
-#          buildDirectory: '${{ github.workspace }}/build'
-
-#      - name: Unit tests
-#        id: unit_tests
-#        run: |
-#         build/unit_test_all
+      - name: Unit tests
+        id: unit_tests
+        run: |
+         build\\Release\\unit_test_all
