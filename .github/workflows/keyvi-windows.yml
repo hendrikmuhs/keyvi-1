@@ -115,4 +115,4 @@ jobs:
         id: unit_tests
         run: |
             cd build\Release
-            unit_test_all.exe --log_level=test_suite
+            ./unit_test_all.exe --log_level=test_suite
