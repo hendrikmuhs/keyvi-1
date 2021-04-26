@@ -47,7 +47,7 @@
 #include "keyvi/dictionary/fsa/segment_iterator.h"
 #include "keyvi/util/configuration.h"
 
-// #define ENABLE_TRACING
+#define ENABLE_TRACING
 #include "keyvi/dictionary/util/trace.h"
 
 namespace keyvi {
