@@ -39,7 +39,7 @@
 #include "keyvi/dictionary/fsa/internal/string_value_store.h"
 #include "keyvi/util/configuration.h"
 
-// #define ENABLE_TRACING
+#define ENABLE_TRACING
 #include "keyvi/dictionary/util/trace.h"
 
 namespace keyvi {
@@ -83,10 +83,12 @@ class CompilationUtils {
     }
 
     g.CloseFeeding();
+    TRACE("write dict");
+    
     std::ofstream out_stream(file_name, std::ios::binary);
     g.Write(out_stream);
     out_stream.close();
-
+    TRACE("compile done, load dict");
     dictionary::fsa::automata_t f(new dictionary::fsa::Automata(file_name.c_str()));
     return f;
   }
