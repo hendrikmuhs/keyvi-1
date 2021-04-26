@@ -37,7 +37,7 @@
 #include "keyvi/util/configuration.h"
 #include "keyvi/util/serialization_utils.h"
 
-// #define ENABLE_TRACING
+#define ENABLE_TRACING
 #include "keyvi/dictionary/util/trace.h"
 
 namespace keyvi {
