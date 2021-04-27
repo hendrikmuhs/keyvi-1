@@ -90,6 +90,8 @@ class CompilationUtils {
     out_stream.close();
     TRACE("compile done, load dict");
     dictionary::fsa::automata_t f(new dictionary::fsa::Automata(file_name.c_str()));
+    TRACE("loaded dict");
+    
     return f;
   }
 
