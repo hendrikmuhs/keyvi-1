@@ -34,6 +34,9 @@
 
 #include "keyvi/testing/compilation_utils.h"
 
+#define ENABLE_TRACING
+#include "keyvi/dictionary/util/trace.h"
+
 namespace keyvi {
 namespace testing {
 
@@ -73,7 +76,10 @@ class TempDictionary final {
 
   const std::string& GetFileName() const { return file_name_; }
 
-  ~TempDictionary() { std::remove(file_name_.c_str()); }
+  ~TempDictionary() { 
+      TRACE("delete %s", file_name_.c_str());
+      std::remove(file_name_.c_str()); 
+   }
 
  private:
   dictionary::fsa::automata_t fsa_;
