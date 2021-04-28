@@ -287,7 +287,7 @@ BOOST_AUTO_TEST_CASE(MergeIntegerDictsAppendMerge) {
 
   std::remove(filename.c_str());
 }
-
+/*
 BOOST_AUTO_TEST_CASE(MergeStringDicts) {
   keyvi::util::parameters_t merge_configurations[] = {{{"memory_limit_mb", "10"}},
                                                       {{"memory_limit_mb", "10"}, {"merge_mode", "append"}}};
@@ -343,7 +343,7 @@ BOOST_AUTO_TEST_CASE(MergeStringDicts) {
     std::remove(filename.c_str());
   }
 }
-
+*/
 BOOST_AUTO_TEST_CASE(MergeJsonDicts) {
   keyvi::util::parameters_t merge_configurations[] = {{{"memory_limit_mb", "10"}},
                                                       {{"memory_limit_mb", "10"}, {"merge_mode", "append"}}};
