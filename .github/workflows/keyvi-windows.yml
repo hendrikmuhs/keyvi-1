@@ -113,6 +113,7 @@ jobs:
 
       - name: Unit tests
         id: unit_tests
+        shell: cmd
         run: |
             cd build\${{ matrix.type }}
-            Start-Process -Wait -FilePath "unit_test_all.exe" -ArgumentList "--log_level=test_suite"
+            .\unit_test_all.exe --log_level=test_suite
