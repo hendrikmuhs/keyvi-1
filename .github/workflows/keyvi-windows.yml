@@ -19,7 +19,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        type: ['Release']
+        type: ['Release', 'Debug']
         os: ['windows-latest']
     env:
         BOOST_VERSION: "1.75.0"
@@ -65,7 +65,7 @@ jobs:
       - name: install zlib
         run: |
             cd C:\\hostedtoolcache\\windows\\zlib\\zlib-1.2.11\\build
-            cmake --build . --config Release --target INSTALL
+            cmake --build . --config ${{ matrix.type }} --target INSTALL
 
       - name: Cache Snappy
         id: cache-snappy
@@ -92,7 +92,7 @@ jobs:
       - name: install snappy
         run: |
             cd C:\\hostedtoolcache\\windows\\snappy\\snappy-1.1.8\\build
-            cmake --build . --config Release --target INSTALL
+            cmake --build . --config ${{ matrix.type }} --target INSTALL
 
       - name: checkout from git
         uses: actions/checkout@v2
@@ -104,15 +104,15 @@ jobs:
           cmakeListsTxtPath: '${{ github.workspace }}/CMakeLists.txt'
           cmakeAppendedArgs: '-DCMAKE_BUILD_TYPE=${{ matrix.type }} -DBOOST_ROOT=${{ env.BOOST_ROOT }} -DBOOST_INCLUDEDIR=${{ env.BOOST_INCLUDEDIR }} -DBOOST_LIBRARYDIR=${{ env.BOOST_LIBRARYDIR }} -DSnappy_INCLUDE_DIR="C:\Program Files (x86)\Snappy\include" -DSnappy_LIBRARY="c:\Program Files (x86)\Snappy\lib\snappy.lib'
           buildWithCMake: false
-          cmakeBuildType: "Release"
+          cmakeBuildType: ${{ matrix.type }}
           buildDirectory: '${{ github.workspace }}/build'
       - name: build
         run: |
             cd build
-            cmake --build . --config Release
+            cmake --build . --config ${{ matrix.type }}
 
       - name: Unit tests
         id: unit_tests
         run: |
-            cd build\Release
+            cd build\${{ matrix.type }}
             ./unit_test_all.exe --log_level=test_suite
