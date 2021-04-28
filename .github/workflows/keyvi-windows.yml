@@ -110,11 +110,9 @@ jobs:
         run: |
             cd build
             cmake --build . --config ${{ matrix.type }}
-            dir
 
       - name: Unit tests
         id: unit_tests
         run: |
             cd build\${{ matrix.type }}
-            dir
             ./unit_test_all.exe --log_level=test_suite
