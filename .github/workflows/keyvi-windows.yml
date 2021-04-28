@@ -108,6 +108,7 @@ jobs:
           buildDirectory: '${{ github.workspace }}/build'
       - name: build
         run: |
+            dir
             cd build
             cmake --build . --config ${{ matrix.type }}
             dir
