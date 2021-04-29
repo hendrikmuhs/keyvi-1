@@ -116,4 +116,5 @@ jobs:
         shell: cmd
         run: |
             cd build\${{ matrix.type }}
+            .\unit_test_all.exe -?
             .\unit_test_all.exe --log_level=test_suite
