@@ -30,6 +30,7 @@
 
 #include "keyvi/index/read_only_index.h"
 #include "keyvi/testing/index_mock.h"
+#include "morton-nd/mortonND_LUT_encoder.h"
 
 namespace keyvi {
 namespace index {
@@ -283,6 +284,36 @@ BOOST_AUTO_TEST_CASE(nearMatching) {
                    {"\"pizzeria in Munich 4\"", "\"pizzeria in Munich 1\""});
 }
 
+BOOST_AUTO_TEST_CASE(nearMatching2) {
+  testing::IndexMock index;
+
+  constexpr auto MortonND_8D_64 = mortonnd::MortonNDLutEncoder<8, 8, 4>();
+
+  std::vector<std::pair<std::string, std::string>> test_data;
+  for (size_t i = 0; i < 100; ++i) {
+    uint64_t encoding = MortonND_8D_64.Encode(
+        i * (std::numeric_limits<int64_t>::max() / 100), i * (std::numeric_limits<int64_t>::max() / 100),
+        i * (std::numeric_limits<int64_t>::max() / 100), i * (std::numeric_limits<int64_t>::max() / 100),
+        i * (std::numeric_limits<int64_t>::max() / 100), i * (std::numeric_limits<int64_t>::max() / 100),
+        i * (std::numeric_limits<int64_t>::max() / 100), i * (std::numeric_limits<int64_t>::max() / 100));
+    std::string key(reinterpret_cast<const char*>(&encoding), 8);
+    test_data.emplace_back(key, std::to_string(i));
+  }
+  index.AddSegment(&test_data);
+
+  uint64_t encoding =
+      MortonND_8D_64.Encode(std::numeric_limits<int64_t>::max() / 2, std::numeric_limits<int64_t>::max() / 2,
+                            std::numeric_limits<int64_t>::max() / 2, std::numeric_limits<int64_t>::max() / 2,
+                            std::numeric_limits<int64_t>::max() / 2, std::numeric_limits<int64_t>::max() / 2,
+                            std::numeric_limits<int64_t>::max() / 2, std::numeric_limits<int64_t>::max() / 2);
+  std::string query(reinterpret_cast<const char*>(&encoding), 8);
+  ReadOnlyIndex reader(index.GetIndexFolder(), {{"refresh_interval", "400"}});
+
+  auto matcher = reader.GetNear(query, 0, false);
+  for (auto m : matcher) {
+    std::cout << m.GetValueAsString() << std::endl;
+  }
+}
 BOOST_AUTO_TEST_SUITE_END()
 
 } /* namespace index */

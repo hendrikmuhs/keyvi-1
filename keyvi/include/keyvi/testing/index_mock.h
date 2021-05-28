@@ -55,7 +55,8 @@ class IndexMock final {
     create_directories(mock_index_);
   }
 
-  ~IndexMock() { boost::filesystem::remove_all(mock_index_); }
+  ~IndexMock() {  // boost::filesystem::remove_all(mock_index_);
+  }
 
   void AddSegment(std::vector<std::pair<std::string, std::string>>* input) {
     boost::filesystem::path filename(mock_index_);
