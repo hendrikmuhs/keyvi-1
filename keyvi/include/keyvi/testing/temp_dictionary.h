@@ -69,6 +69,12 @@ class TempDictionary final {
     return t;
   }
 
+  template <size_t N>
+  explicit TempDictionary(std::vector<std::pair<std::string, std::array<float, N>>>* input) {
+    CreateFileName();
+    fsa_ = CompilationUtils::CompileFloatVector<N>(input, file_name_);
+  }
+
   dictionary::fsa::automata_t GetFsa() const { return fsa_; }
 
   const std::string& GetFileName() const { return file_name_; }
