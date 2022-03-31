@@ -30,7 +30,7 @@
 
 #include "keyvi/index/read_only_index.h"
 #include "keyvi/testing/index_mock.h"
-#include "morton-nd/mortonND_LUT_encoder.h"
+#include "morton-nd/mortonND_LUT.h"
 
 namespace keyvi {
 namespace index {
@@ -284,6 +284,65 @@ BOOST_AUTO_TEST_CASE(nearMatching) {
                    {"\"pizzeria in Munich 4\"", "\"pizzeria in Munich 1\""});
 }
 
+BOOST_AUTO_TEST_CASE(nearMatching3) {
+  testing::IndexMock index;
+
+  constexpr auto MortonND_2D_64 = mortonnd::MortonNDLutEncoder<2, 32, 8>();
+  constexpr auto MortonND_2D_64_DC = mortonnd::MortonNDLutDecoder<2, 32, 8>();
+
+  double lat = 46.24710003845394;
+  double lon = 13.57959995046258;
+
+  uint64_t mapped_lat = static_cast<std::uint64_t>(((lat + 90.0) / 180) * (1L << 32));
+  uint64_t mapped_lon = static_cast<std::uint64_t>(((lon + 180) / 360) * (1L << 32));
+
+  uint64_t encoded_lat_lon = __builtin_bswap64(MortonND_2D_64.Encode(mapped_lat, mapped_lon));
+  std::vector<std::pair<std::string, std::string>> test_data;
+  std::string key(reinterpret_cast<const char*>(&encoded_lat_lon), 8);
+  test_data.emplace_back(key, "kobarid");
+
+  index.AddSegment(&test_data);
+
+  // test
+  double lat2 = 46.248561576323794;
+  double lon2 = 13.586155688082544;
+
+  uint64_t mapped_lat2 = static_cast<std::uint64_t>(((lat2 + 90.0) / 180) * (1L << 32));
+  uint64_t mapped_lon2 = static_cast<std::uint64_t>(((lon2 + 180) / 360) * (1L << 32));
+
+  uint64_t encoded_lat_lon2 = __builtin_bswap64(MortonND_2D_64.Encode(mapped_lat2, mapped_lon2));
+  {
+    uint64_t mapped_latd;
+    uint64_t mapped_lond;
+    uint64_t encoded_lat_lond = *(reinterpret_cast<const uint64_t*>(key.c_str()));
+
+    std::tie(mapped_latd, mapped_lond) = MortonND_2D_64_DC.Decode(__builtin_bswap64(encoded_lat_lond));
+
+    double latd = ((static_cast<double>(mapped_latd) / (1L << 32)) * 180.0) - 90.0;
+    double lond = ((static_cast<double>(mapped_lond) / (1L << 32)) * 360.0) - 180.0;
+    std::cout << "lat: " << latd << " lon: " << lond << std::endl;
+  }
+
+  std::string query(reinterpret_cast<const char*>(&encoded_lat_lon2), 8);
+  ReadOnlyIndex reader(index.GetIndexFolder(), {{"refresh_interval", "400"}});
+
+  auto matcher = reader.GetNear(query, 2, false);
+  for (auto m : matcher) {
+    std::cout << m.GetValueAsString() << std::endl;
+    uint64_t decoded_lat_lon = *(reinterpret_cast<const uint64_t*>(m.GetMatchedString().c_str()));
+
+    uint64_t mapped_latd;
+    uint64_t mapped_lond;
+
+    std::tie(mapped_latd, mapped_lond) = MortonND_2D_64_DC.Decode(__builtin_bswap64(decoded_lat_lon));
+
+    double latd = ((static_cast<double>(mapped_latd) / (1L << 32)) * 180.0) - 90.0;
+    double lond = ((static_cast<double>(mapped_lond) / (1L << 32)) * 360.0) - 180.0;
+    std::cout << "lat: " << latd << " lon: " << lond << std::endl;
+    std::cout << "score: " << m.GetScore() << std::endl;
+  }
+}
+/*
 BOOST_AUTO_TEST_CASE(nearMatching2) {
   testing::IndexMock index;
 
@@ -313,7 +372,7 @@ BOOST_AUTO_TEST_CASE(nearMatching2) {
   for (auto m : matcher) {
     std::cout << m.GetValueAsString() << std::endl;
   }
-}
+}*/
 BOOST_AUTO_TEST_SUITE_END()
 
 } /* namespace index */
