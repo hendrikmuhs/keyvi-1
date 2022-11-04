@@ -24,6 +24,7 @@
 #include "morton-nd/mortonND_LUT.h"
 
 #include "keyvi/dictionary/dictionary_compiler_common.h"
+#include "keyvi/dictionary/util/endian.h"
 #include "keyvi/util/configuration.h"
 
 // #define ENABLE_TRACING
@@ -36,12 +37,10 @@ namespace dictionary {
  * KD-Dictionary Compiler
  */
 template <class DictionaryCompilerT, std::size_t Dimensions>
-class KDDictionaryCompiler final {
+class KDDictionaryCompilerBase {
+ private:
   using ValueStoreT = typename DictionaryCompilerT::ValueStoreT;
   using callback_t = std::function<void(size_t, size_t, void*)>;
-
-  static_assert(Dimensions > 0, "Dimensions must be > 0");
-  // static_assert(Dimensions == 2, "only 2 dimensions supported in the 1st version");
 
  public:
   /**
@@ -50,26 +49,26 @@ class KDDictionaryCompiler final {
    *
    * @param params compiler parameters
    */
-  explicit KDDictionaryCompiler(const keyvi::util::parameters_t& params = keyvi::util::parameters_t(), double min = 0.0,
-                                double max = 1.0)
-      : compiler_(params), encoder_(), min_(min), max_(max) {}
+  explicit KDDictionaryCompilerBase(const keyvi::util::parameters_t& params = keyvi::util::parameters_t(),
+                                    double min = 0.0, double max = 1.0)
+      : compiler_(params), min_(min), max_(max) {}
 
-  KDDictionaryCompiler& operator=(KDDictionaryCompiler const&) = delete;
-  KDDictionaryCompiler(const KDDictionaryCompiler& that) = delete;
+  KDDictionaryCompilerBase& operator=(KDDictionaryCompilerBase const&) = delete;
+  KDDictionaryCompilerBase(const KDDictionaryCompilerBase& that) = delete;
 
   void Add(const std::vector<double>& input_vector, typename ValueStoreT::value_t value = ValueStoreT::no_value) {
-    if (input_vector.size() != Dimensions) {
+    /*if (input_vector.size() != Dimensions) {
       throw compiler_exception("input vector size does not match dimensions");
     }
 
     uint64_t mapped_x1 = static_cast<std::uint64_t>(((input_vector[0] - min_) / (max_ - min_)) * (1L << 32));
     uint64_t mapped_x2 = static_cast<std::uint64_t>(((input_vector[1] - min_) / (max_ - min_)) * (1L << 32));
 
-    // todo: use endian function
-    uint64_t encoded = __builtin_bswap64(encoder_.Encode(mapped_x1, mapped_x2));
+    // converting to big endian, important for lookup
+    uint64_t encoded = htobe64(encoder_.Encode(mapped_x1, mapped_x2));
     std::string key(reinterpret_cast<const char*>(&encoded), 8);
 
-    compiler_.Add(key, value);
+    compiler_.Add(key, value);*/
   }
 
   /**
@@ -90,12 +89,48 @@ class KDDictionaryCompiler final {
 
   void WriteToFile(const std::string& filename) { compiler_.WriteToFile(filename); }
 
- private:
+ protected:
   DictionaryCompilerT compiler_;
-  // todo: calculate field length based on dimensions
-  mortonnd::MortonNDLutEncoder<Dimensions, 32, 8> encoder_;
   double min_;
   double max_;
+};
+
+template <class DictionaryCompilerT, std::size_t Dimensions>
+class KDDictionaryCompiler final : public KDDictionaryCompilerBase<DictionaryCompilerT, Dimensions> {
+  static_assert(true, "the number of dimensions you are asking for is currently not supported");
+};
+
+template <class DictionaryCompilerT>
+class KDDictionaryCompiler<DictionaryCompilerT, 2> final : public KDDictionaryCompilerBase<DictionaryCompilerT, 2> {
+ private:
+  using ValueStoreT = typename DictionaryCompilerT::ValueStoreT;
+  using KDDictionaryCompilerBase<DictionaryCompilerT, 2>::compiler_;
+  using KDDictionaryCompilerBase<DictionaryCompilerT, 2>::min_;
+  using KDDictionaryCompilerBase<DictionaryCompilerT, 2>::max_;
+
+ public:
+  explicit KDDictionaryCompiler(const keyvi::util::parameters_t& params = keyvi::util::parameters_t(), double min = 0.0,
+                                double max = 1.0)
+      : KDDictionaryCompilerBase<DictionaryCompilerT, 2>(params, min, max), encoder_() {}
+
+  void Add(const std::vector<double>& input_vector, typename ValueStoreT::value_t value = ValueStoreT::no_value) {
+    if (input_vector.size() != 2) {
+      throw compiler_exception("input vector size does not match dimensions");
+    }
+
+    uint64_t mapped_x1 = static_cast<std::uint64_t>(((input_vector[0] - min_) / (max_ - min_)) * (1L << 32));
+    uint64_t mapped_x2 = static_cast<std::uint64_t>(((input_vector[1] - min_) / (max_ - min_)) * (1L << 32));
+
+    // converting to big endian, important for lookup
+    uint64_t encoded = htobe64(encoder_.Encode(mapped_x1, mapped_x2));
+    std::string key(reinterpret_cast<const char*>(&encoded), 8);
+
+    compiler_.Add(key, value);
+  }
+
+ private:
+  // todo: calculate field length based on dimensions
+  mortonnd::MortonNDLutEncoder<2, 32, 8> encoder_;
 };
 
 } /* namespace dictionary */

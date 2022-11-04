@@ -32,6 +32,7 @@
 #include "keyvi/dictionary/match_iterator.h"
 #include "keyvi/dictionary/matching/fuzzy_matching.h"
 #include "keyvi/dictionary/matching/near_matching.h"
+#include "keyvi/dictionary/util/endian.h"
 
 // #define ENABLE_TRACING
 #include "keyvi/dictionary/util/trace.h"
@@ -65,7 +66,7 @@ class KDDictionary final {
     uint64_t mapped_x1 = static_cast<std::uint64_t>(((input_vector[0] - min_) / (max_ - min_)) * (1L << 32));
     uint64_t mapped_x2 = static_cast<std::uint64_t>(((input_vector[1] - min_) / (max_ - min_)) * (1L << 32));
 
-    uint64_t encoded = __builtin_bswap64(encoder_.Encode(mapped_x1, mapped_x2));
+    uint64_t encoded = htobe64(encoder_.Encode(mapped_x1, mapped_x2));
     std::string key(reinterpret_cast<const char*>(&encoded), 8);
     return dictionary_[key];
   }
@@ -80,7 +81,7 @@ class KDDictionary final {
     uint64_t mapped_x1 = static_cast<std::uint64_t>(((input_vector[0] - min_) / (max_ - min_)) * (1L << 32));
     uint64_t mapped_x2 = static_cast<std::uint64_t>(((input_vector[1] - min_) / (max_ - min_)) * (1L << 32));
 
-    uint64_t encoded = __builtin_bswap64(encoder_.Encode(mapped_x1, mapped_x2));
+    uint64_t encoded = htobe64(encoder_.Encode(mapped_x1, mapped_x2));
     std::string key(reinterpret_cast<const char*>(&encoded), 8);
     return dictionary_.Get(key);
   }
@@ -91,7 +92,7 @@ class KDDictionary final {
     uint64_t mapped_x1 = static_cast<std::uint64_t>(((input_vector[0] - min_) / (max_ - min_)) * (1L << 32));
     uint64_t mapped_x2 = static_cast<std::uint64_t>(((input_vector[1] - min_) / (max_ - min_)) * (1L << 32));
 
-    uint64_t encoded = __builtin_bswap64(encoder_.Encode(mapped_x1, mapped_x2));
+    uint64_t encoded = htobe64(encoder_.Encode(mapped_x1, mapped_x2));
     std::string key(reinterpret_cast<const char*>(&encoded), 8);
     return dictionary_.GetNear(key, 1, true);
   }
