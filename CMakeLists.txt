@@ -15,7 +15,7 @@ set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${CMAKE_CURRENT_SOURCE_DIR}/cmake_mo
 #### Compiler Flags ####
 
 # configure C++11
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 # keyvi specific compile options, definitions and flags
@@ -130,6 +130,10 @@ list(APPEND KEYVI_INCLUDES "${CMAKE_CURRENT_BINARY_DIR}/keyvi/3rdparty/utfcpp/")
 list(APPEND KEYVI_INCLUDES "${CMAKE_CURRENT_SOURCE_DIR}/keyvi/3rdparty/misc")
 list(APPEND KEYVI_INCLUDES "${CMAKE_CURRENT_SOURCE_DIR}/keyvi/3rdparty/msgpack-c/include")
 list(APPEND KEYVI_INCLUDES "${CMAKE_CURRENT_SOURCE_DIR}/keyvi/3rdparty/concurrentqueue")
+
+add_subdirectory(keyvi/3rdparty/morton-nd)
+list(APPEND KEYVI_INCLUDES "${CMAKE_CURRENT_SOURCE_DIR}/keyvi/3rdparty/morton-nd/include")
+#target_link_libraries(main PRIVATE morton-nd::MortonND)
 
 # keyvi
 list(APPEND KEYVI_INCLUDES "${CMAKE_CURRENT_SOURCE_DIR}/keyvi/include")
