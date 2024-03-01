@@ -37,6 +37,7 @@
 #include "keyvi/dictionary/match.h"
 #include "keyvi/dictionary/match_iterator.h"
 #include "keyvi/dictionary/matching/fuzzy_matching.h"
+#include "keyvi/dictionary/matching/multiword_completion_matching.h"
 #include "keyvi/dictionary/matching/near_matching.h"
 #include "keyvi/dictionary/matching/prefix_completion_matching.h"
 #include "keyvi/dictionary/util/bounded_priority_queue.h"
@@ -358,6 +359,17 @@ class Dictionary final {
     return MatchIterator::MakeIteratorPair(
         func, data->FirstMatch(),
         std::bind(&matching::PrefixCompletionMatching<>::SetMinWeight, &(*data), std::placeholders::_1));
+  }
+
+  MatchIterator::MatchIteratorPair GetMultiwordCompletion(const std::string& query,
+                                                          const unsigned char multiword_separator = 0x1b) const {
+    auto data = std::make_shared<matching::MultiwordCompletionMatching<>>(
+        matching::MultiwordCompletionMatching<>::FromSingleFsa(fsa_, query, multiword_separator));
+
+    auto func = [data]() { return data->NextMatch(); };
+    return MatchIterator::MakeIteratorPair(
+        func, data->FirstMatch(),
+        std::bind(&matching::MultiwordCompletionMatching<>::SetMinWeight, &(*data), std::placeholders::_1));
   }
 
   std::string GetManifest() const { return fsa_->GetManifest(); }
