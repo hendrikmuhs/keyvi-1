@@ -52,9 +52,9 @@ BOOST_AUTO_TEST_CASE(prefix_completion_edge_cases) {
 
   testing::test_matching<matching::PrefixCompletionMatching>(
       &test_data, "", std::vector<std::string>{"bbcd", "aacd", "aabc", "aabb", "aaaa"});
-  test_prefix_completion_matching(&test_data, "c", {});
-  test_prefix_completion_matching(&test_data, "cc", {});
-  test_prefix_completion_matching(&test_data, " ", {});
+  testing::test_matching<matching::PrefixCompletionMatching>(&test_data, "c", {});
+  testing::test_matching<matching::PrefixCompletionMatching>(&test_data, "cc", {});
+  testing::test_matching<matching::PrefixCompletionMatching>(&test_data, " ", {});
 }
 
 BOOST_AUTO_TEST_CASE(prefix_completion_cjk) {

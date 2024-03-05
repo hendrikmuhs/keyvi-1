@@ -94,9 +94,9 @@ BOOST_AUTO_TEST_CASE(multiword_multi_token_0) {
                                                               1040}};
 
   testing::test_matching<matching::MultiwordCompletionMatching>(&test_data, "aaaa b",
-                                                                std::vector<std::string>{"aaaa xde bc", "aaaa bbb"});
+                                                                std::vector<std::string>{"aaaa bc xde", "aaaa bbb"});
   testing::test_matching<matching::MultiwordCompletionMatching>(&test_data, "xd",
-                                                                std::vector<std::string>{"aaaa xde bc"});
+                                                                std::vector<std::string>{"aaaa bc xde"});
   testing::test_matching<matching::MultiwordCompletionMatching>(&test_data, "aaaa", std::vector<std::string>{});
   testing::test_matching<matching::MultiwordCompletionMatching>(
       &test_data, "aaaa ", std::vector<std::string>{"aaaa bc xde", "aaaa bbb", "aaaa cc"});

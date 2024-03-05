@@ -144,7 +144,7 @@ def test_multiword_simple():
             "80s techno fashion",
         ]
         assert [m.matched_string for m in d.complete_multiword("90s")] == []
-        
+
         assert [
             m.matched_string
             for m in sorted(

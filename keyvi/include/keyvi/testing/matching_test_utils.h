@@ -15,6 +15,9 @@
  * limitations under the License.
  */
 
+#ifndef KEYVI_TESTING_MATCHING_TEST_UTILS_H_
+#define KEYVI_TESTING_MATCHING_TEST_UTILS_H_
+
 #include <algorithm>
 #include <memory>
 #include <string>
@@ -120,3 +123,5 @@ void test_matching(std::vector<std::pair<std::string, uint32_t>>* test_data, con
 
 } /* namespace testing */
 } /* namespace keyvi */
+
+#endif  // KEYVI_TESTING_MATCHING_TEST_UTILS_H_
