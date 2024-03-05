@@ -62,6 +62,15 @@ cdef extern from "keyvi/dictionary/dictionary.h" namespace "keyvi::dictionary":
         #  In case the used dictionary supports inner weights, the
         #  completer traverses the dictionary according to weights. If weights
         #  are not available the dictionary gets traversed in byte-order.
+        _MatchIteratorPair GetMultiwordCompletion (libcpp_utf8_string key, size_t top_n) except + # wrap-as:complete_multiword
+        # wrap-doc:
+        #  complete the given key to full matches by matching the given key as
+        #  multiword. The key can consist of multiple tokens separated by space.
+        #  For matching it gets tokenized put back together bag-of-words style.
+        #  The dictionary must be created the same way.
+        #  In case the used dictionary supports inner weights, the
+        #  completer traverses the dictionary according to weights. If weights
+        #  are not available the dictionary gets traversed in byte-order.
         _MatchIteratorPair GetAllItems () # wrap-ignore
         _MatchIteratorPair Lookup(libcpp_utf8_string  key) # wrap-as:search
         _MatchIteratorPair LookupText(libcpp_utf8_string text) # wrap-as:search_tokenized
