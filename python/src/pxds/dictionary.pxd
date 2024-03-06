@@ -3,6 +3,7 @@ from libcpp.string cimport string as libcpp_string
 from libcpp.string cimport string as libcpp_utf8_string
 from libcpp.string cimport string as libcpp_utf8_output_string
 from libc.stdint cimport int32_t
+from libc.stdint cimport uint32_t
 from libc.stdint cimport uint64_t
 from libcpp cimport bool
 from libcpp.pair cimport pair as libcpp_pair
