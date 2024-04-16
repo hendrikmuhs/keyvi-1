@@ -36,6 +36,10 @@ namespace fsa {
 using NearStateTraverser = StateTraverser<traversal::NearTransition>;
 using WeightedStateTraverser = StateTraverser<traversal::WeightedTransition>;
 
+using WeightedStateTraverserSSE42 = StateTraverser<traversal::WeightedTransition, SSE42>;
+//using WeightedStateTraverserAVX = StateTraverser<traversal::WeightedTransition, AVX>;
+using WeightedStateTraverserAVX = StateTraverser<traversal::WeightedTransition, SSE42>;
+
 } /* namespace fsa */
 } /* namespace dictionary */
 } /* namespace keyvi */

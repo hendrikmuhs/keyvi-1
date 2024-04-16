@@ -148,45 +148,15 @@ class Automata final {
    * todo: rewrite to avoid push_back on vectors, see:
    * http://lemire.me/blog/2012/06/20/do-not-waste-time-with-stl-vectors/
    */
-  template <class TransitionT, typename std::enable_if<std::is_base_of<traversal::Transition, TransitionT>::value,
-                                                       traversal::Transition>::type* = nullptr>
+  template <TARGET_PLATFORM T_, class TransitionT, std::enable_if_t<(T_ == TARGET_PLATFORM::GENERIC)>* = nullptr,
+            typename std::enable_if<std::is_base_of<traversal::Transition, TransitionT>::value,
+                                    traversal::Transition>::type* = nullptr>
   void GetOutGoingTransitions(uint64_t starting_state, traversal::TraversalState<TransitionT>* traversal_state,
                               traversal::TraversalPayload<TransitionT>* payload,
                               [[maybe_unused]] uint32_t parent_weight = 0) const {
     // reset the state
     traversal_state->Clear();
 
-#if defined(KEYVI_SSE42)
-    // Optimized version using SSE4.2, see http://www.strchr.com/strcmp_and_strlen_using_sse_4.2
-
-    __m128i* labels_as_m128 = reinterpret_cast<__m128i*>(labels_ + starting_state);
-    __m128i* mask_as_m128 = reinterpret_cast<__m128i*>(OUTGOING_TRANSITIONS_MASK);
-    unsigned char symbol = 0;
-
-    // check 16 bytes at a time
-    for (int offset = 0; offset < 16; ++offset) {
-      __m128i mask =
-          _mm_cmpestrm(_mm_loadu_si128(labels_as_m128), 16, _mm_loadu_si128(mask_as_m128), 16,
-                       _SIDD_UBYTE_OPS | _SIDD_CMP_EQUAL_EACH | _SIDD_MASKED_POSITIVE_POLARITY | _SIDD_BIT_MASK);
-
-      uint64_t mask_int = _mm_extract_epi64(mask, 0);
-      TRACE("Bitmask %d", mask_int);
-
-      if (mask_int != 0) {
-        for (auto i = 0; i < 16; ++i) {
-          if ((mask_int & 1) == 1) {
-            TRACE("push symbol+%d", symbol + i);
-            traversal_state->Add(ResolvePointer(starting_state, symbol + i), symbol + i, payload);
-          }
-          mask_int = mask_int >> 1;
-        }
-      }
-
-      ++labels_as_m128;
-      ++mask_as_m128;
-      symbol += 16;
-    }
-#else
     uint64_t* labels_as_ll = reinterpret_cast<uint64_t*>(labels_ + starting_state);
     uint64_t* mask_as_ll = reinterpret_cast<uint64_t*>(OUTGOING_TRANSITIONS_MASK);
     unsigned char symbol = 0;
@@ -224,7 +194,6 @@ class Automata final {
       ++mask_as_ll;
       symbol += 8;
     }
-#endif
 
     // post, e.g. sort transitions
     TRACE("postprocess transitions");
@@ -233,7 +202,99 @@ class Automata final {
     return;
   }
 
-  template <class TransitionT,
+  template <TARGET_PLATFORM T_, class TransitionT, std::enable_if_t<(T_ == TARGET_PLATFORM::SSE42)>* = nullptr,
+            typename std::enable_if<std::is_base_of<traversal::Transition, TransitionT>::value,
+                                    traversal::Transition>::type* = nullptr>
+  void GetOutGoingTransitions(uint64_t starting_state, traversal::TraversalState<TransitionT>* traversal_state,
+                              traversal::TraversalPayload<TransitionT>* payload,
+                              [[maybe_unused]] uint32_t parent_weight = 0) const {
+    // reset the state
+    traversal_state->Clear();
+
+    // Optimized version using SSE4.2, see http://www.strchr.com/strcmp_and_strlen_using_sse_4.2
+/*
+    __m128i* labels_as_m128 = reinterpret_cast<__m128i*>(labels_ + starting_state);
+    __m128i* mask_as_m128 = reinterpret_cast<__m128i*>(OUTGOING_TRANSITIONS_MASK);
+    unsigned char symbol = 0;
+
+    // check 16 bytes at a time
+    for (int offset = 0; offset < 16; ++offset) {
+      __m128i mask =
+          _mm_cmpestrm(_mm_loadu_si128(labels_as_m128), 16, _mm_loadu_si128(mask_as_m128), 16,
+                       _SIDD_UBYTE_OPS | _SIDD_CMP_EQUAL_EACH | _SIDD_MASKED_POSITIVE_POLARITY | _SIDD_BIT_MASK);
+
+      uint64_t mask_int = _mm_extract_epi64(mask, 0);
+      TRACE("Bitmask %d", mask_int);
+
+      if (mask_int != 0) {
+        for (auto i = 0; i < 16; ++i) {
+          if ((mask_int & 1) == 1) {
+            TRACE("push symbol+%d", symbol + i);
+            traversal_state->Add(ResolvePointer(starting_state, symbol + i), symbol + i, payload);
+          }
+          mask_int = mask_int >> 1;
+        }
+      }
+
+      ++labels_as_m128;
+      ++mask_as_m128;
+      symbol += 16;
+    }
+*/
+    // post, e.g. sort transitions
+    TRACE("postprocess transitions");
+    traversal_state->PostProcess(payload);
+
+    return;
+  }
+
+  template <TARGET_PLATFORM T_, class TransitionT, std::enable_if_t<(T_ == TARGET_PLATFORM::AVX)>* = nullptr,
+            typename std::enable_if<std::is_base_of<traversal::Transition, TransitionT>::value,
+                                    traversal::Transition>::type* = nullptr>
+  void GetOutGoingTransitions(uint64_t starting_state, traversal::TraversalState<TransitionT>* traversal_state,
+                              traversal::TraversalPayload<TransitionT>* payload,
+                              [[maybe_unused]] uint32_t parent_weight = 0) const {
+    // reset the state
+    traversal_state->Clear();
+/*
+    __m256i* labels_as_m256 = reinterpret_cast<__m256i*>(labels_ + starting_state);
+    __m256i* mask_as_m256 = reinterpret_cast<__m256i*>(OUTGOING_TRANSITIONS_MASK);
+    unsigned char symbol = 0;
+
+    // check 32 bytes at a time
+    for (int offset = 0; offset < 8; ++offset) {(
+      _mm256_cmpeq_epi8(labels_as_m128, mask_as_m256)
+
+      __m128i mask =
+          _mm_cmpestrm(_mm_loadu_si128(labels_as_m128), 16, _mm_loadu_si128(mask_as_m128), 16,
+                       _SIDD_UBYTE_OPS | _SIDD_CMP_EQUAL_EACH | _SIDD_MASKED_POSITIVE_POLARITY | _SIDD_BIT_MASK);
+
+      uint64_t mask_int = _mm_extract_epi64(mask, 0);
+      TRACE("Bitmask %d", mask_int);
+
+      if (mask_int != 0) {
+        for (auto i = 0; i < 16; ++i) {
+          if ((mask_int & 1) == 1) {
+            TRACE("push symbol+%d", symbol + i);
+            traversal_state->Add(ResolvePointer(starting_state, symbol + i), symbol + i, payload);
+          }
+          mask_int = mask_int >> 1;
+        }
+      }
+
+      ++labels_as_m128;
+      ++mask_as_m128;
+      symbol += 16;
+    }
+
+    // post, e.g. sort transitions
+    TRACE("postprocess transitions");
+    traversal_state->PostProcess(payload);
+*/
+    return;
+  }
+
+  template <TARGET_PLATFORM, class TransitionT,
             typename std::enable_if<std::is_base_of<traversal::WeightedTransition, TransitionT>::value,
                                     traversal::WeightedTransition>::type* = nullptr>
   inline void GetOutGoingTransitions(uint64_t starting_state, traversal::TraversalState<TransitionT>* traversal_state,
@@ -242,7 +303,7 @@ class Automata final {
     // reset the state
     traversal_state->Clear();
 
-#if defined(KEYVI_SSE42)
+#if defined(KEYVI_SSE4233)
     // Optimized version using SSE4.2, see http://www.strchr.com/strcmp_and_strlen_using_sse_4.2
 
     __m128i* labels_as_m128 = reinterpret_cast<__m128i*>(labels_ + starting_state);
@@ -385,13 +446,9 @@ class Automata final {
     return value_store_reader_->GetRawValueAsString(state_value);
   }
 
-  std::string GetStatistics() const {
-    return dictionary_properties_->GetStatistics();
-  }
+  std::string GetStatistics() const { return dictionary_properties_->GetStatistics(); }
 
-  std::string GetManifest() const {
-    return dictionary_properties_->GetManifest();
-  }
+  std::string GetManifest() const { return dictionary_properties_->GetManifest(); }
 
  private:
   dictionary_properties_t dictionary_properties_;

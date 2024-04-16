@@ -51,7 +51,7 @@ class EntryIterator final {
     if (f && f->GetNumberOfKeys() > 0) {
       current_state_ = start_state;
       traversal_stack_.reserve(50);
-      f->GetOutGoingTransitions(start_state, &stack_.GetStates(), &stack_.traversal_stack_payload);
+      f->GetOutGoingTransitions<SSE42>(start_state, &stack_.GetStates(), &stack_.traversal_stack_payload);
 
       TraverseToNextFinalState();
     } else {
@@ -153,7 +153,7 @@ class EntryIterator final {
 
       traversal_stack_.push_back(stack_.GetStates().GetNextTransition());
       stack_++;
-      fsa_->GetOutGoingTransitions(current_state_, &stack_.GetStates(), &stack_.traversal_stack_payload);
+      fsa_->GetOutGoingTransitions<SSE42>(current_state_, &stack_.GetStates(), &stack_.traversal_stack_payload);
 
       TRACE("found %ld outgoing states", stack_.GetStates().size());
 

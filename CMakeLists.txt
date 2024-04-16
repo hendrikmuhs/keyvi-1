@@ -20,7 +20,7 @@ set (_KEVYI_COMPILE_OPTIONS "-Wall")
 set (_KEYVI_COMPILE_DEFINITIONS "RAPIDJSON_HAS_STDSTRING")
 
 if(${CMAKE_SYSTEM_PROCESSOR} STREQUAL "x86_64")
-    set (_KEYVI_CXX_FLAGS "-msse4.2")
+    set (_KEYVI_CXX_FLAGS "-mavx2")
     message( STATUS "Architecture: ${CMAKE_SYSTEM_PROCESSOR} detected: added -msse4.2 compile flag")
 endif()
 
@@ -174,6 +174,13 @@ target_compile_options(unit_test_all PRIVATE ${_KEYVI_CXX_FLAGS_LIST})
 target_compile_definitions(unit_test_all PRIVATE ${_KEYVI_COMPILE_DEFINITIONS_LIST})
 target_include_directories(unit_test_all PRIVATE "$<BUILD_INTERFACE:${KEYVI_INCLUDES}>")
 add_dependencies(unit_test_all keyvimerger)
+
+# performance tests
+add_executable(performance_state_traversal_intrinsics keyvi/performance/performance_state_traversal_intrinsics.cpp)
+target_link_libraries(performance_state_traversal_intrinsics ${Boost_LIBRARIES} ${ZLIB_LIBRARIES} ${Snappy_LIBRARY} ${_OS_LIBRARIES})
+target_compile_options(performance_state_traversal_intrinsics PRIVATE ${_KEYVI_CXX_FLAGS_LIST})
+target_compile_definitions(performance_state_traversal_intrinsics PRIVATE ${_KEYVI_COMPILE_DEFINITIONS_LIST})
+target_include_directories(performance_state_traversal_intrinsics PRIVATE "$<BUILD_INTERFACE:${KEYVI_INCLUDES}>")
 
 if (WIN32)
   message(STATUS "zlib: ${ZLIB_LIBRARY_RELEASE}")

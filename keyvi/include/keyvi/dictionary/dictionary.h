@@ -328,14 +328,32 @@ class Dictionary final {
     return MatchIterator::MakeIteratorPair(func, data->FirstMatch());
   }
 
+  __attribute__ ((target ("default")))
   MatchIterator::MatchIteratorPair GetPrefixCompletion(const std::string& query) const {
-    auto data = std::make_shared<matching::PrefixCompletionMatching<>>(
-        matching::PrefixCompletionMatching<>::FromSingleFsa(fsa_, query));
+    return _GetPrefixCompletion<fsa::WeightedStateTraverser>(query);
+  }
+  
+  __attribute__ ((target ("sse4.2")))
+  MatchIterator::MatchIteratorPair GetPrefixCompletion(const std::string& query) const {
+    std::cout << "--->>>SSE42" << std::endl;
+        return _GetPrefixCompletion<fsa::WeightedStateTraverserSSE42>(query);
+  }
+
+  __attribute__ ((target ("avx2")))
+  MatchIterator::MatchIteratorPair GetPrefixCompletion(const std::string& query) const {
+    std::cout << "--->>>AVX2" << std::endl;
+        return _GetPrefixCompletion<fsa::WeightedStateTraverserAVX>(query);
+  }
+
+  template<class optimizedTraverserType>
+  MatchIterator::MatchIteratorPair _GetPrefixCompletion(const std::string& query) const {
+    auto data = std::make_shared<matching::PrefixCompletionMatching<optimizedTraverserType>>(
+        matching::PrefixCompletionMatching<optimizedTraverserType>::FromSingleFsa(fsa_, query));
 
     auto func = [data]() { return data->NextMatch(); };
     return MatchIterator::MakeIteratorPair(
         func, data->FirstMatch(),
-        std::bind(&matching::PrefixCompletionMatching<>::SetMinWeight, &(*data), std::placeholders::_1));
+        std::bind(&matching::PrefixCompletionMatching<optimizedTraverserType>::SetMinWeight, &(*data), std::placeholders::_1));
   }
 
   MatchIterator::MatchIteratorPair GetPrefixCompletion(const std::string& query, size_t top_n) const {
@@ -373,10 +391,24 @@ class Dictionary final {
         std::bind(&matching::MultiwordCompletionMatching<>::SetMinWeight, &(*data), std::placeholders::_1));
   }
 
+  __attribute__ ((target ("default")))
   MatchIterator::MatchIteratorPair GetMultiwordCompletion(const std::string& query, size_t top_n,
                                                           const unsigned char multiword_separator = 0x1b) const {
-    auto data = std::make_shared<matching::MultiwordCompletionMatching<>>(
-        matching::MultiwordCompletionMatching<>::FromSingleFsa(fsa_, query, multiword_separator));
+    return _GetMultiwordCompletion<fsa::WeightedStateTraverser>(query, top_n, multiword_separator);
+  }
+
+  __attribute__ ((target ("sse4.2")))
+  MatchIterator::MatchIteratorPair GetMultiwordCompletion(const std::string& query, size_t top_n,
+                                                          const unsigned char multiword_separator = 0x1b) const {
+std::cout << "--->>>SSE42" << std::endl;
+    return _GetMultiwordCompletion<fsa::WeightedStateTraverserSSE42>(query, top_n, multiword_separator);
+  }
+
+  template<class optimizedTraverserType>
+  MatchIterator::MatchIteratorPair _GetMultiwordCompletion(const std::string& query, size_t top_n,
+                                                          const unsigned char multiword_separator = 0x1b) const {
+    auto data = std::make_shared<matching::MultiwordCompletionMatching<optimizedTraverserType>>(
+        matching::MultiwordCompletionMatching<optimizedTraverserType>::FromSingleFsa(fsa_, query, multiword_separator));
 
     auto best_weights = std::make_shared<util::BoundedPriorityQueue<uint32_t>>(top_n);
 
@@ -395,7 +427,7 @@ class Dictionary final {
 
     return MatchIterator::MakeIteratorPair(
         func, data->FirstMatch(),
-        std::bind(&matching::MultiwordCompletionMatching<>::SetMinWeight, &(*data), std::placeholders::_1));
+        std::bind(&matching::MultiwordCompletionMatching<optimizedTraverserType>::SetMinWeight, &(*data), std::placeholders::_1));
   }
 
   MatchIterator::MatchIteratorPair GetFuzzyMultiwordCompletion(const std::string& query,
