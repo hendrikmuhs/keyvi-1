@@ -77,7 +77,7 @@ class Automata final {
       : Automata(std::make_shared<DictionaryProperties>(DictionaryProperties::FromFile(file_name)), loading_strategy,
                  true) {}
 
- private:
+
   explicit Automata(const dictionary_properties_t& dictionary_properties, loading_strategy_types loading_strategy,
                     const bool load_value_store)
       : dictionary_properties_(dictionary_properties) {

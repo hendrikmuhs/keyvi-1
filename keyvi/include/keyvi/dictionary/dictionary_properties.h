@@ -114,6 +114,21 @@ class DictionaryProperties {
     throw std::invalid_argument("not a keyvi file");
   }
 
+  static DictionaryProperties FromStream(const std::string& file_name, std::ifstream& file_stream) {
+      if (!file_stream.good()) {
+        throw std::invalid_argument("dictionary file not found");
+      }
+
+      char magic[KEYVI_FILE_MAGIC_LEN];
+      file_stream.read(magic, KEYVI_FILE_MAGIC_LEN);
+
+      // check magic
+      if (std::strncmp(magic, KEYVI_FILE_MAGIC, KEYVI_FILE_MAGIC_LEN) == 0) {
+        return ReadJsonFormat(file_name, file_stream);
+      }
+      throw std::invalid_argument("not a keyvi file");
+    }
+
   const std::string& GetFileName() const { return file_name_; }
 
   uint64_t GetStartState() const { return start_state_; }

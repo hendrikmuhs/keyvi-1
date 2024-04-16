@@ -305,8 +305,8 @@ BOOST_AUTO_TEST_CASE(nearMatching3) {
   constexpr auto MortonND_2D_64 = mortonnd::MortonNDLutEncoder<2, 32, 8>();
   constexpr auto MortonND_2D_64_DC = mortonnd::MortonNDLutDecoder<2, 32, 8>();
 
-  double lat = 46.24710003845394;
-  double lon = 13.57959995046258;
+  float lat = 46.24710003845394;
+  float lon = 13.57959995046258;
 
   uint64_t mapped_lat = static_cast<std::uint64_t>(((lat + 90.0) / 180) * (1L << 32));
   uint64_t mapped_lon = static_cast<std::uint64_t>(((lon + 180) / 360) * (1L << 32));
@@ -319,8 +319,8 @@ BOOST_AUTO_TEST_CASE(nearMatching3) {
   index.AddSegment(&test_data);
 
   // test
-  double lat2 = 46.248561576323794;
-  double lon2 = 13.586155688082544;
+  float lat2 = 46.248561576323794;
+  float lon2 = 13.586155688082544;
 
   uint64_t mapped_lat2 = static_cast<std::uint64_t>(((lat2 + 90.0) / 180) * (1L << 32));
   uint64_t mapped_lon2 = static_cast<std::uint64_t>(((lon2 + 180) / 360) * (1L << 32));
@@ -333,8 +333,8 @@ BOOST_AUTO_TEST_CASE(nearMatching3) {
 
     std::tie(mapped_latd, mapped_lond) = MortonND_2D_64_DC.Decode(__builtin_bswap64(encoded_lat_lond));
 
-    double latd = ((static_cast<double>(mapped_latd) / (1L << 32)) * 180.0) - 90.0;
-    double lond = ((static_cast<double>(mapped_lond) / (1L << 32)) * 360.0) - 180.0;
+    float latd = ((static_cast<float>(mapped_latd) / (1L << 32)) * 180.0) - 90.0;
+    float lond = ((static_cast<float>(mapped_lond) / (1L << 32)) * 360.0) - 180.0;
     std::cout << "lat: " << latd << " lon: " << lond << std::endl;
   }
 
@@ -351,8 +351,8 @@ BOOST_AUTO_TEST_CASE(nearMatching3) {
 
     std::tie(mapped_latd, mapped_lond) = MortonND_2D_64_DC.Decode(__builtin_bswap64(decoded_lat_lon));
 
-    double latd = ((static_cast<double>(mapped_latd) / (1L << 32)) * 180.0) - 90.0;
-    double lond = ((static_cast<double>(mapped_lond) / (1L << 32)) * 360.0) - 180.0;
+    float latd = ((static_cast<float>(mapped_latd) / (1L << 32)) * 180.0) - 90.0;
+    float lond = ((static_cast<float>(mapped_lond) / (1L << 32)) * 360.0) - 180.0;
     std::cout << "lat: " << latd << " lon: " << lond << std::endl;
     std::cout << "score: " << m.GetScore() << std::endl;
   }

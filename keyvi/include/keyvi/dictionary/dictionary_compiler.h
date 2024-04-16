@@ -125,6 +125,24 @@ class DictionaryCompiler final {
     TriggerSortAndChunkGenerationIfNeeded();
   }
 
+  uint64_t Add2(const std::string& input_key, typename ValueStoreT::value_t value = ValueStoreT::no_value) {
+    if (generator_) {
+      throw compiler_exception("You're not supposed to add more data once compilation is done!");
+    }
+
+    size_of_keys_ += input_key.size();
+
+    memory_estimate_ += EstimateMemory(input_key);
+
+    fsa::ValueHandle handle = RegisterValue(value);
+    // no move, we have no ownership
+    key_values_.push_back(key_value_t(input_key, handle));
+    TriggerSortAndChunkGenerationIfNeeded();
+
+    return handle.value_idx_;
+  }
+
+
   /**
    * Do the final compilation
    */

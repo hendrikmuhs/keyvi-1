@@ -25,6 +25,7 @@
 #include "morton-nd/mortonND_LUT.h"
 
 #include "keyvi/dictionary/dictionary.h"
+#include "keyvi/dictionary/dictionary_properties.h"
 #include "keyvi/dictionary/fsa/automata.h"
 #include "keyvi/dictionary/fsa/state_traverser.h"
 #include "keyvi/dictionary/fsa/traverser_types.h"
@@ -48,9 +49,17 @@ class KDDictionary final {
    * @param filename filename to load keyvi file from.
    * @param loading_strategy optional: Loading strategy to use.
    */
-  explicit KDDictionary(const std::string& filename,
+  explicit KDDictionary(const std::string& file_name,
                         loading_strategy_types loading_strategy = loading_strategy_types::lazy)
-      : dictionary_(filename, loading_strategy) {
+       {
+	  std::ifstream file_stream(file_name, std::ios::binary);
+	  dictionary_properties_t prop1 = std::make_shared<DictionaryProperties>(DictionaryProperties::FromStream(file_name, file_stream);
+
+
+	  kd_dictionary_ = Dictionary(std::make_shared<fsa::Automata>(prop1, loading_strategy, true));
+
+	  dictionary_ = Dictionary(std::make_shared<fsa::Automata>(prop1, loading_strategy, true));
+
     TRACE("KDDictionary from file %s", filename.c_str());
   }
 
@@ -62,7 +71,7 @@ class KDDictionary final {
 
   uint64_t GetSize() const { return dictionary_.GetSize(); }
 
-  Match operator[](const std::vector<double>& input_vector) const {
+  Match operator[](const std::vector<float>& input_vector) const {
     uint64_t mapped_x1 = static_cast<std::uint64_t>(((input_vector[0] - min_) / (max_ - min_)) * (1L << 32));
     uint64_t mapped_x2 = static_cast<std::uint64_t>(((input_vector[1] - min_) / (max_ - min_)) * (1L << 32));
 
@@ -77,7 +86,7 @@ class KDDictionary final {
    * @param key the key to lookup.
    * @return a match iterator
    */
-  MatchIterator::MatchIteratorPair Get(const std::vector<double>& input_vector) const {
+  MatchIterator::MatchIteratorPair Get(const std::vector<float>& input_vector) const {
     uint64_t mapped_x1 = static_cast<std::uint64_t>(((input_vector[0] - min_) / (max_ - min_)) * (1L << 32));
     uint64_t mapped_x2 = static_cast<std::uint64_t>(((input_vector[1] - min_) / (max_ - min_)) * (1L << 32));
 
@@ -88,7 +97,7 @@ class KDDictionary final {
 
   /**
    */
-  MatchIterator::MatchIteratorPair GetNearestNeighbors(const std::vector<double>& input_vector) const {
+  MatchIterator::MatchIteratorPair GetNearestNeighbors(const std::vector<float>& input_vector) const {
     uint64_t mapped_x1 = static_cast<std::uint64_t>(((input_vector[0] - min_) / (max_ - min_)) * (1L << 32));
     uint64_t mapped_x2 = static_cast<std::uint64_t>(((input_vector[1] - min_) / (max_ - min_)) * (1L << 32));
 
@@ -100,11 +109,12 @@ class KDDictionary final {
   std::string GetManifest() const { return dictionary_.GetManifest(); }
 
  private:
+  Dictionary kd_dictionary_;
   Dictionary dictionary_;
   // todo: hardcoded for now, make it flexible based on dictionary properties
   mortonnd::MortonNDLutEncoder<2, 32, 8> encoder_;
-  double min_ = 0.0;
-  double max_ = 1.0;
+  float min_ = 0.0;
+  float max_ = 1.0;
 };
 
 typedef std::shared_ptr<KDDictionary> k_d_dictionary_t;

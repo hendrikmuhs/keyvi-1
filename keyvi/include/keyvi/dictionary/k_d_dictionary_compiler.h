@@ -26,6 +26,7 @@
 #include "keyvi/dictionary/dictionary_compiler_common.h"
 #include "keyvi/dictionary/util/endian.h"
 #include "keyvi/util/configuration.h"
+#include "keyvi/util/vint.h"
 
 // #define ENABLE_TRACING
 #include "keyvi/dictionary/util/trace.h"
@@ -36,10 +37,10 @@ namespace dictionary {
 /**
  * KD-Dictionary Compiler
  */
-template <class DictionaryCompilerT, std::size_t Dimensions>
+template <keyvi::dictionary::fsa::internal::value_store_t ValueStoreType, std::size_t Dimensions>
 class KDDictionaryCompilerBase {
  private:
-  using ValueStoreT = typename DictionaryCompilerT::ValueStoreT;
+  using ValueStoreT = typename fsa::internal::ValueStoreComponents<ValueStoreType>::value_store_writer_t;
   using callback_t = std::function<void(size_t, size_t, void*)>;
 
  public:
@@ -50,31 +51,17 @@ class KDDictionaryCompilerBase {
    * @param params compiler parameters
    */
   explicit KDDictionaryCompilerBase(const keyvi::util::parameters_t& params = keyvi::util::parameters_t(),
-                                    double min = 0.0, double max = 1.0)
+                                    float min = 0.0, float max = 1.0)
       : compiler_(params), min_(min), max_(max) {}
 
   KDDictionaryCompilerBase& operator=(KDDictionaryCompilerBase const&) = delete;
   KDDictionaryCompilerBase(const KDDictionaryCompilerBase& that) = delete;
 
-  void Add(const std::vector<double>& input_vector, typename ValueStoreT::value_t value = ValueStoreT::no_value) {
-    /*if (input_vector.size() != Dimensions) {
-      throw compiler_exception("input vector size does not match dimensions");
-    }
-
-    uint64_t mapped_x1 = static_cast<std::uint64_t>(((input_vector[0] - min_) / (max_ - min_)) * (1L << 32));
-    uint64_t mapped_x2 = static_cast<std::uint64_t>(((input_vector[1] - min_) / (max_ - min_)) * (1L << 32));
-
-    // converting to big endian, important for lookup
-    uint64_t encoded = htobe64(encoder_.Encode(mapped_x1, mapped_x2));
-    std::string key(reinterpret_cast<const char*>(&encoded), 8);
-
-    compiler_.Add(key, value);*/
-  }
-
   /**
    * Do the final compilation
    */
   void Compile(callback_t progress_callback = nullptr, void* user_data = nullptr) {
+	kd_compiler_.Compile(nullptr, nullptr);
     compiler_.Compile(progress_callback, user_data);
   }
 
@@ -85,35 +72,44 @@ class KDDictionaryCompilerBase {
    */
   void SetManifest(const std::string& manifest) { compiler_.SetManifest(manifest); }
 
-  void Write(std::ostream& stream) { compiler_.Write(stream); }
+  void Write(std::ostream& stream) {
+	  kd_compiler_.Write(stream);
+	  compiler_.Write(stream);
+  }
 
-  void WriteToFile(const std::string& filename) { compiler_.WriteToFile(filename); }
+  void WriteToFile(const std::string& filename) {
+	  std::ofstream out_stream = keyvi::util::OsUtils::OpenOutFileStream(filename);
+	  Write(out_stream);
+	  out_stream.close();
+  }
 
  protected:
-  DictionaryCompilerT compiler_;
-  double min_;
-  double max_;
+  keyvi::dictionary::DictionaryCompiler<dictionary_type_t::FLOAT_VECTOR> kd_compiler_;
+  keyvi::dictionary::DictionaryCompiler<ValueStoreType> compiler_;
+  float min_;
+  float max_;
 };
 
-template <class DictionaryCompilerT, std::size_t Dimensions>
-class KDDictionaryCompiler final : public KDDictionaryCompilerBase<DictionaryCompilerT, Dimensions> {
+template <keyvi::dictionary::fsa::internal::value_store_t ValueStoreType, std::size_t Dimensions>
+class KDDictionaryCompiler final : public KDDictionaryCompilerBase<ValueStoreType, Dimensions> {
   static_assert(true, "the number of dimensions you are asking for is currently not supported");
 };
 
-template <class DictionaryCompilerT>
-class KDDictionaryCompiler<DictionaryCompilerT, 2> final : public KDDictionaryCompilerBase<DictionaryCompilerT, 2> {
+template <keyvi::dictionary::fsa::internal::value_store_t ValueStoreType>
+class KDDictionaryCompiler<ValueStoreType, 2> final : public KDDictionaryCompilerBase<ValueStoreType, 2> {
  private:
-  using ValueStoreT = typename DictionaryCompilerT::ValueStoreT;
-  using KDDictionaryCompilerBase<DictionaryCompilerT, 2>::compiler_;
-  using KDDictionaryCompilerBase<DictionaryCompilerT, 2>::min_;
-  using KDDictionaryCompilerBase<DictionaryCompilerT, 2>::max_;
+  using ValueStoreT = typename fsa::internal::ValueStoreComponents<ValueStoreType>::value_store_writer_t;
+  using KDDictionaryCompilerBase<ValueStoreType, 2>::kd_compiler_;
+  using KDDictionaryCompilerBase<ValueStoreType, 2>::compiler_;
+  using KDDictionaryCompilerBase<ValueStoreType, 2>::min_;
+  using KDDictionaryCompilerBase<ValueStoreType, 2>::max_;
 
  public:
-  explicit KDDictionaryCompiler(const keyvi::util::parameters_t& params = keyvi::util::parameters_t(), double min = 0.0,
-                                double max = 1.0)
-      : KDDictionaryCompilerBase<DictionaryCompilerT, 2>(params, min, max), encoder_() {}
+  explicit KDDictionaryCompiler(const keyvi::util::parameters_t& params = keyvi::util::parameters_t(), float min = 0.0,
+                                float max = 1.0)
+      : KDDictionaryCompilerBase<ValueStoreType, 2>(params, min, max), encoder_() {}
 
-  void Add(const std::vector<double>& input_vector, typename ValueStoreT::value_t value = ValueStoreT::no_value) {
+  void Add(const std::vector<float>& input_vector, typename ValueStoreT::value_t value = ValueStoreT::no_value) {
     if (input_vector.size() != 2) {
       throw compiler_exception("input vector size does not match dimensions");
     }
@@ -125,7 +121,19 @@ class KDDictionaryCompiler<DictionaryCompilerT, 2> final : public KDDictionaryCo
     uint64_t encoded = htobe64(encoder_.Encode(mapped_x1, mapped_x2));
     std::string key(reinterpret_cast<const char*>(&encoded), 8);
 
-    compiler_.Add(key, value);
+
+    uint64_t v = kd_compiler_.Add2(key, input_vector);
+
+    //size_t length;
+    //uint8_t buffer[32];
+
+    //keyvi::util::encodeVarInt(v, buffer, &length);
+
+    //std::string key2(&buffer,length);
+    std::string key2(reinterpret_cast<const char*>(&v), 8);
+
+
+    compiler_.Add(key2, value);
   }
 
  private:

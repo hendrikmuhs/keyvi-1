@@ -32,7 +32,7 @@ namespace dictionary {
 BOOST_AUTO_TEST_SUITE(KDDictionaryCompilerTests)
 
 BOOST_AUTO_TEST_CASE(simple) {
-  KDDictionaryCompiler<DictionaryCompiler<dictionary_type_t::JSON>, 2> compiler(
+  KDDictionaryCompiler<dictionary_type_t::JSON, 2> compiler(
       keyvi::util::parameters_t({{"memory_limit_mb", "10"}}));
 
   compiler.Add({0.2, 0.3}, "1");
