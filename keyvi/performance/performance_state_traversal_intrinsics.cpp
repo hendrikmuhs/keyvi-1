@@ -28,7 +28,7 @@
 #include <smmintrin.h>
 #endif
 
-#include <chrono>
+#include <chrono>  // NOLINT [build/c++11]
 #include <cstdint>
 #include <iostream>
 #include <random>
@@ -38,7 +38,7 @@
 
 using clock_type = std::chrono::system_clock;
 
-clock_type::duration generic(std::vector<std::vector<unsigned char>>& test_states) {
+clock_type::duration generic(const std::vector<std::vector<unsigned char>>& test_states) {
   auto const start = clock_type::now();
 
   keyvi::dictionary::fsa::traversal::TraversalPayload<> traversal_payload;
@@ -88,7 +88,7 @@ clock_type::duration generic(std::vector<std::vector<unsigned char>>& test_state
   return clock_type::now() - start;
 }
 
-clock_type::duration sse42(std::vector<std::vector<unsigned char>>& test_states) {
+clock_type::duration sse42(const std::vector<std::vector<unsigned char>>& test_states) {
 #ifdef __SSE4_2__
   auto const start = clock_type::now();
 
@@ -133,7 +133,7 @@ clock_type::duration sse42(std::vector<std::vector<unsigned char>>& test_states)
 #endif
 }
 
-clock_type::duration avx(std::vector<std::vector<unsigned char>>& test_states) {
+clock_type::duration avx(const std::vector<std::vector<unsigned char>>& test_states) {
 #ifdef __AVX2__
 
   auto const start = clock_type::now();
