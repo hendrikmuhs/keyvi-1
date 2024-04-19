@@ -233,7 +233,7 @@ class FuzzyMatching final {
     return fsa_start_state_pairs;
   }
 
-  Match FirstMatch() const { return first_match_; }
+  Match FirstMatch() { return first_match_; }
 
   Match NextMatch() {
     for (; traverser_ptr_ && *traverser_ptr_; (*traverser_ptr_)++) {

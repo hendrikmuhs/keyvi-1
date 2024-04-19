@@ -25,10 +25,11 @@
 #ifndef KEYVI_DICTIONARY_MATCH_ITERATOR_H_
 #define KEYVI_DICTIONARY_MATCH_ITERATOR_H_
 
+#include <tuple>
+
 #include <boost/iterator/iterator_facade.hpp>
 
 #include "keyvi/dictionary/match.h"
-#include "keyvi/dictionary/util/iterator_utils.h"
 
 // #define ENABLE_TRACING
 #include "keyvi/dictionary/util/trace.h"
@@ -53,25 +54,34 @@ namespace dictionary {
  */
 class MatchIterator : public boost::iterator_facade<MatchIterator, Match const, boost::single_pass_traversal_tag> {
  public:
-  typedef util::iterator_pair<MatchIterator> MatchIteratorPair;
+  using MatchIteratorPair = std::tuple<MatchIterator, MatchIterator>;
 
-  explicit MatchIterator(std::function<Match()> match_functor, const Match& first_match = Match(),
+  explicit MatchIterator(std::function<Match()> match_functor, Match&& first_match = Match(),
                          std::function<void(uint32_t)> set_min_weight = {})
-      : match_functor_(match_functor), set_min_weight_(set_min_weight) {
-    current_match_ = first_match;
+      : match_functor_(match_functor), current_match_(std::move(first_match)), set_min_weight_(set_min_weight) {
+    //current_match_ = first_match;
     if (first_match.IsEmpty()) {
       increment();
     }
   }
 
-  static MatchIteratorPair MakeIteratorPair(std::function<Match()> f, const Match& first_match = Match(),
-                                            std::function<void(uint32_t)> set_min_weight = {}) {
-    return MatchIteratorPair(MatchIterator(f, first_match, set_min_weight), MatchIterator());
+  MatchIterator(MatchIterator&& other)
+      : match_functor_(std::move(other.match_functor_)),
+        current_match_(std::move(other.current_match_)),
+        set_min_weight_(std::move(other.set_min_weight_)) {
+    other.current_match_ = Match();
   }
 
-  static MatchIteratorPair EmptyIteratorPair() { return MatchIteratorPair(MatchIterator(), MatchIterator()); }
-
   MatchIterator() : match_functor_(0), set_min_weight_({}) {}
+  //MatchIterator& operator=(MatchIterator const&) = delete;
+  //MatchIterator(const MatchIterator& that) = delete;
+
+  static MatchIteratorPair MakeIteratorPair(std::function<Match()> f, Match&& first_match = Match(),
+                                            std::function<void(uint32_t)> set_min_weight = {}) {
+    return std::make_tuple<>(MatchIterator(f, std::move(first_match), set_min_weight), MatchIterator());
+  }
+
+  static MatchIteratorPair EmptyIteratorPair() { return std::make_tuple<>(MatchIterator(), MatchIterator()); }
 
   void SetMinWeight(uint32_t min_weight) {
     // ignore if a min weight setter was not provided
@@ -89,7 +99,7 @@ class MatchIterator : public boost::iterator_facade<MatchIterator, Match const, 
     if (match_functor_) {
       TRACE("Match Iterator: call increment()");
 
-      current_match_ = match_functor_();
+      current_match_ = std::move(match_functor_());
 
       // if we get an empty match, release the functor
       if (current_match_.IsEmpty()) {

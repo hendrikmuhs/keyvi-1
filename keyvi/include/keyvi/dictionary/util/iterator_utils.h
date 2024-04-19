@@ -35,14 +35,14 @@ class iterator_pair {
   iterator_pair(){}
 
   iterator_pair(Iterator first, Iterator last)
-      : f_(first),
-        l_(last) {
+      : f_(std::move(first)),
+        l_(std::move(last)) {
   }
   Iterator begin() const {
-    return f_;
+    return std::move(f_);
   }
   Iterator end() const {
-    return l_;
+    return std::move(l_);
   }
 
  private:

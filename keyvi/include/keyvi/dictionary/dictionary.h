@@ -142,21 +142,23 @@ class Dictionary final {
     }
 
     Match m;
-    bool has_run = false;
+    //bool has_run = false;
 
     // right now this is returning just 1 match, but it could be more if it is a multi-value dictionary
     m = Match(0, text_length, key, 0, fsa_, fsa_->GetStateValue(state));
-
-    auto func = [m, has_run]() mutable {
+/*
+    auto func = [m = std::move(m), has_run]() mutable {
       if (!has_run) {
         has_run = true;
-        return m;
+        return std::move(m);
       }
 
       return Match();
-    };
+    };*/
 
-    return MatchIterator::MakeIteratorPair(func);
+    return MatchIterator::MakeIteratorPair([](){return Match();}, std::move(m));
+
+    //return MatchIterator::MakeIteratorPair(func);
   }
 
   /**
@@ -208,7 +210,7 @@ class Dictionary final {
         }
       }
     };
-    return MatchIterator::MakeIteratorPair(tfunc, first_match);
+    return MatchIterator::MakeIteratorPair(tfunc, std::move(first_match));
   }
 
   /**
@@ -239,7 +241,6 @@ class Dictionary final {
     }
 
     Match m;
-    bool has_run = false;
 
     if (last_final_state) {
       // right now this is returning just 1 match, but it could do more
@@ -247,16 +248,7 @@ class Dictionary final {
                 fsa_->GetStateValue(last_final_state));
     }
 
-    auto func = [m, has_run]() mutable {
-      if (!has_run) {
-        has_run = true;
-        return m;
-      }
-
-      return Match();
-    };
-
-    return MatchIterator::MakeIteratorPair(func);
+    return MatchIterator::MakeIteratorPair([](){return Match();}, std::move(m));
   }
 
   /**
@@ -271,7 +263,7 @@ class Dictionary final {
 
     TRACE("LookupText, 1st lookup for: %s", text.c_str());
 
-    iterators.push(Lookup(text).begin());
+    iterators.push(std::get<0>(Lookup(text)));
     size_t position = 1;
 
     while (position < text_length) {
@@ -282,21 +274,24 @@ class Dictionary final {
 
       ++position;
       TRACE("LookupText, starting lookup for: %s", text.c_str() + position);
-      iterators.push(Lookup(text, position).begin());
+      iterators.push(std::get<0>(Lookup(text, position)));
     }
-
-    MatchIterator current_it = iterators.front();
+/*
+    MatchIterator& current_it = iterators.front();
     iterators.pop();
 
-    auto func = [iterators, current_it]() mutable {
-      while (iterators.size() && (*current_it).IsEmpty()) {
-        current_it = iterators.front();
+    //auto func = [iterators, current_it]() mutable {
+
+    auto func = [iterators = std::move(iterators), current_it = std::move(current_it)]() mutable {
+      while (iterators.size() && (*iterators.front()).IsEmpty()) {
         iterators.pop();
       }
 
       return *current_it++;
     };
-
+*/
+    auto func = []()
+{return Match();};
     return MatchIterator::MakeIteratorPair(func);
   }
 
@@ -315,8 +310,10 @@ class Dictionary final {
     auto data = std::make_shared<matching::NearMatching<>>(
         matching::NearMatching<>::FromSingleFsa(fsa_, key, minimum_prefix_length, greedy));
 
-    auto func = [data]() { return data->NextMatch(); };
-    return MatchIterator::MakeIteratorPair(func, data->FirstMatch());
+    auto func = [data]() { return std::move(data->NextMatch()); };
+    //Match m(std::move(data->FirstMatch()));
+
+    return MatchIterator::MakeIteratorPair(func, std::move(data->FirstMatch()));
   }
 
   MatchIterator::MatchIteratorPair GetFuzzy(const std::string& query, const int32_t max_edit_distance,

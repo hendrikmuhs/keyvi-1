@@ -54,14 +54,18 @@ struct keyvi_dictionary {
 };
 
 struct keyvi_match {
-  explicit keyvi_match(const Match& obj) : obj_(obj) {}
+  explicit keyvi_match(Match&& obj) : obj_(std::move(obj)) {}
 
   Match obj_;
 };
 
 struct keyvi_match_iterator {
-  explicit keyvi_match_iterator(const MatchIterator::MatchIteratorPair& obj) : current_(obj.begin()), end_(obj.end()) {}
+  explicit keyvi_match_iterator(const MatchIterator::MatchIteratorPair& obj) 
+  //p_(std::move(obj)) {}
+{}
+   //current_(std::get<0>(obj)), end_(std::move(std::get<1>(obj))) {}
 
+  //MatchIterator::MatchIteratorPair p_;
   MatchIterator current_;
   const MatchIterator end_;
 };
@@ -187,8 +191,8 @@ bool keyvi_match_iterator_empty(const keyvi_match_iterator* iterator) {
   return iterator->current_ == iterator->end_;
 }
 
-keyvi_match* keyvi_match_iterator_dereference(const keyvi_match_iterator* iterator) {
-  return new keyvi_match(*iterator->current_);
+keyvi_match* keyvi_match_iterator_dereference(keyvi_match_iterator* iterator) {
+  return new keyvi_match(Match()); //*iterator->current_);
 }
 
 void keyvi_match_iterator_increment(keyvi_match_iterator* iterator) {
