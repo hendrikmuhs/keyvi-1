@@ -20,7 +20,7 @@ set (_KEVYI_COMPILE_OPTIONS "-Wall")
 set (_KEYVI_COMPILE_DEFINITIONS "RAPIDJSON_HAS_STDSTRING")
 
 if(${CMAKE_SYSTEM_PROCESSOR} STREQUAL "x86_64")
-    set (_KEYVI_CXX_FLAGS "-msse4.2")
+    set (_KEYVI_CXX_FLAGS "-mavx2")
     message( STATUS "Architecture: ${CMAKE_SYSTEM_PROCESSOR} detected: added -msse4.2 compile flag")
 endif()
 
