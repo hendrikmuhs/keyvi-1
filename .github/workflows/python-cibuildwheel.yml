@@ -119,8 +119,8 @@ jobs:
           # testing
           CIBW_TEST_REQUIRES: pytest python-snappy zstd
           CIBW_TEST_COMMAND: >
-            cd {package} && python -m pytest tests &&
-            python -m pytest integration-tests
+            python -m pytest {package}/tests &&
+            python -m pytest {package}/integration-tests
 
           # for debugging set this to 1,2 or 3
           # CIBW_BUILD_VERBOSITY: 2
