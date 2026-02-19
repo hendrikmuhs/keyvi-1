@@ -27,6 +27,7 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <utility>
@@ -129,6 +130,7 @@ class PrefixCompletion final {
     return MatchIterator::EmptyIteratorPair();
   }
 
+  // NOLINTBEGIN(readability-function-cognitive-complexity)
   [[nodiscard]] MatchIterator::MatchIteratorPair GetFuzzyCompletions(const std::string& query,
                                                                      const int32_t max_edit_distance,
                                                                      const size_t minimum_exact_prefix = 2) const {
@@ -224,6 +226,7 @@ class PrefixCompletion final {
 
     return MatchIterator::MakeIteratorPair(tfunc, std::move(first_match));
   }
+  // NOLINTEND(readability-function-cognitive-complexity)
 
  private:
   fsa::automata_t fsa_;
