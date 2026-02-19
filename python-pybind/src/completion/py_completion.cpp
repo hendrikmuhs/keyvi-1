@@ -48,6 +48,45 @@ void init_keyvi_completion(const py::module_& module) {
 
             Returns an iterator of Match objects.
           )pbdoc");
-  py::class_<kdc::MultiWordCompletion>(module, "MultiWordCompletion");
-  py::class_<kdc::PrefixCompletion>(module, "PrefixCompletion");
+  py::class_<kdc::MultiWordCompletion>(module, "MultiWordCompletion")
+      .def(py::init<kd::dictionary_t>(), py::arg("dictionary"))
+      .def(
+          "complete",
+          [](const kdc::MultiWordCompletion& c, const std::string& query, const int number_of_results) {
+            auto m = c.GetCompletions(query, number_of_results);
+            return kpy::make_match_iterator(m.begin(), m.end());
+          },
+          py::arg("query"), py::arg("number_of_results") = 10,
+          R"pbdoc(
+            Get multi-word completions for a query.
+
+            Returns an iterator of Match objects.
+          )pbdoc");
+  py::class_<kdc::PrefixCompletion>(module, "PrefixCompletion")
+      .def(py::init<kd::dictionary_t>(), py::arg("dictionary"))
+      .def(
+          "complete",
+          [](const kdc::PrefixCompletion& c, const std::string& query, const int number_of_results) {
+            auto m = c.GetCompletions(query, number_of_results);
+            return kpy::make_match_iterator(m.begin(), m.end());
+          },
+          py::arg("query"), py::arg("number_of_results") = 10,
+          R"pbdoc(
+            Get prefix completions for a query.
+
+            Returns an iterator of Match objects.
+          )pbdoc")
+      .def(
+          "complete_fuzzy",
+          [](kdc::PrefixCompletion& c, const std::string& query, const int max_edit_distance,
+             const size_t minimum_exact_prefix) {
+            auto m = c.GetFuzzyCompletions(query, max_edit_distance, minimum_exact_prefix);
+            return kpy::make_match_iterator(m.begin(), m.end());
+          },
+          py::arg("query"), py::arg("max_edit_distance"), py::arg("minimum_exact_prefix") = 2,
+          R"pbdoc(
+            Get fuzzy prefix completions for a query.
+
+            Returns an iterator of Match objects.
+          )pbdoc");
 }
