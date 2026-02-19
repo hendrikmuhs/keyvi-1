@@ -31,6 +31,26 @@ namespace py = pybind11;
 namespace kd = keyvi::dictionary;
 namespace kpy = keyvi::pybind;
 
+inline const py::object& get_msgpack_loads_func() {
+  PYBIND11_CONSTINIT static py::gil_safe_call_once_and_store<py::object> storage;
+  return storage
+      .call_once_and_store_result([]() -> py::object { return py::getattr(py::module_::import("msgpack"), "loads"); })
+      .get_stored();
+}
+
+inline py::object match_value(const kd::Match& m) {
+  auto packed_value = m.GetMsgPackedValueAsString();
+  if (packed_value.empty()) {
+    return py::none();
+  }
+  return get_msgpack_loads_func()(py::bytes(packed_value));
+}
+
+struct DictionaryItemsIterator {
+  kd::MatchIterator it;
+  kd::MatchIterator end;
+};
+
 void init_keyvi_dictionary(const py::module_& m) {
   m.doc() = R"pbdoc(
         keyvi.dictionary
@@ -42,6 +62,18 @@ void init_keyvi_dictionary(const py::module_& m) {
            :toctree: _generate
 
     )pbdoc";
+
+  py::class_<DictionaryItemsIterator>(m, "DictionaryItemsIterator")
+      .def("__iter__", [](DictionaryItemsIterator& s) -> DictionaryItemsIterator& { return s; })
+      .def("__next__", [](DictionaryItemsIterator& s) -> py::tuple {
+        if (s.it == s.end) {
+          throw py::stop_iteration();
+        }
+        const kd::match_t& m = *s.it;
+        py::tuple result = py::make_tuple(m->GetMatchedString(), match_value(*m));
+        ++s.it;
+        return result;
+      });
 
   py::class_<kd::Dictionary, std::shared_ptr<kd::Dictionary>>(m, "Dictionary")
       .def(py::init<const std::string&>())
@@ -145,10 +177,10 @@ void init_keyvi_dictionary(const py::module_& m) {
           "items",
           [](const kd::Dictionary& d) {
             auto m = d.GetAllItems();
-            return kpy::make_match_iterator(m.begin(), m.end());
+            return DictionaryItemsIterator{m.begin(), m.end()};
           },
           R"pbdoc(
-            Return an iterator over all items in the dictionary as Match objects.
+            Return an iterator over all (key, value) tuples in the dictionary.
           )pbdoc")
       .def(
           "match",
