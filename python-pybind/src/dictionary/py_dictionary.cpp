@@ -17,6 +17,7 @@
 
 #include <pybind11/pybind11.h>
 
+#include <memory>
 #include <string>
 
 #include "keyvi/dictionary/dictionary.h"
@@ -43,7 +44,7 @@ void init_keyvi_dictionary(const py::module_& m) {
 
   // TODO(hendrik): 'items', 'keys', 'manifest', 'match_fuzzy', 'match_near',
   // 'search_tokenized', 'statistics', 'values'
-  py::class_<kd::Dictionary>(m, "Dictionary")
+  py::class_<kd::Dictionary, std::shared_ptr<kd::Dictionary>>(m, "Dictionary")
       .def(py::init<const std::string&>())
       .def(py::init<const std::string&, kd::loading_strategy_types>())
       .def(
