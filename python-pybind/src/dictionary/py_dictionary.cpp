@@ -17,6 +17,7 @@
 
 #include <pybind11/pybind11.h>
 
+#include <cstdint>
 #include <memory>
 #include <string>
 
@@ -42,8 +43,6 @@ void init_keyvi_dictionary(const py::module_& m) {
 
     )pbdoc";
 
-  // TODO(hendrik): 'items', 'keys', 'manifest', 'match_fuzzy', 'match_near',
-  // 'search_tokenized', 'statistics', 'values'
   py::class_<kd::Dictionary, std::shared_ptr<kd::Dictionary>>(m, "Dictionary")
       .def(py::init<const std::string&>())
       .def(py::init<const std::string&, kd::loading_strategy_types>())
@@ -122,15 +121,95 @@ void init_keyvi_dictionary(const py::module_& m) {
       .def("get", &kd::Dictionary::operator[], R"pbdoc(
         Get an entry from the dictionary.
     )pbdoc")
-      .def("__getitem__", &kd::Dictionary::operator[], R"pbdoc(
-        Get an entry from the dictionary.
+      .def(
+          "__getitem__",
+          [](const kd::Dictionary& d, const std::string& key) {
+            auto m = d[key];
+            if (!m) {
+              throw py::key_error(key);
+            }
+            return m;
+          },
+          R"pbdoc(
+        Get an entry from the dictionary. Raises KeyError if not found.
     )pbdoc")
-      .def("match",
-           [](const kd::Dictionary& d, const std::string& key) {
-             auto m = d.Get(key);
-             return kpy::make_match_iterator(m.begin(), m.end());
-           })
-      .def("search", &kd::Dictionary::Lookup);
+      .def(
+          "__contains__", [](const kd::Dictionary& d, const std::string& key) { return d.Contains(key); },
+          R"pbdoc(
+        Check if a key is in the dictionary.
+    )pbdoc")
+      .def("__len__", &kd::Dictionary::GetSize, R"pbdoc(
+        Return the number of keys in the dictionary.
+    )pbdoc")
+      .def(
+          "items",
+          [](const kd::Dictionary& d) {
+            auto m = d.GetAllItems();
+            return kpy::make_match_iterator(m.begin(), m.end());
+          },
+          R"pbdoc(
+            Return an iterator over all items in the dictionary as Match objects.
+          )pbdoc")
+      .def(
+          "match",
+          [](const kd::Dictionary& d, const std::string& key) {
+            auto m = d.Get(key);
+            return kpy::make_match_iterator(m.begin(), m.end());
+          },
+          py::arg("key"), R"pbdoc(
+            Exact match for a key.
+          )pbdoc")
+      .def(
+          "match_fuzzy",
+          [](const kd::Dictionary& d, const std::string& key, const int32_t max_edit_distance,
+             const size_t minimum_exact_prefix) {
+            auto m = d.GetFuzzy(key, max_edit_distance, minimum_exact_prefix);
+            return kpy::make_match_iterator(m.begin(), m.end());
+          },
+          py::arg("key"), py::arg("max_edit_distance"), py::arg("minimum_exact_prefix") = 2,
+          R"pbdoc(
+            Fuzzy match for a key allowing up to max_edit_distance Levenshtein distance.
+          )pbdoc")
+      .def(
+          "match_near",
+          [](const kd::Dictionary& d, const std::string& key, const size_t minimum_prefix_length, const bool greedy) {
+            auto m = d.GetNear(key, minimum_prefix_length, greedy);
+            return kpy::make_match_iterator(m.begin(), m.end());
+          },
+          py::arg("key"), py::arg("minimum_prefix_length"), py::arg("greedy") = false,
+          R"pbdoc(
+            Match a key near: match as much as possible exact given the minimum
+            prefix length and then return everything below.
+
+            If greedy is True it matches everything below the minimum_prefix_length,
+            but in the order of exact first.
+          )pbdoc")
+      .def("manifest", &kd::Dictionary::GetManifest, R"pbdoc(
+        Get the manifest of the dictionary.
+    )pbdoc")
+      .def("search", &kd::Dictionary::Lookup, py::arg("key"), py::arg("offset") = 0, R"pbdoc(
+        Search for a key using leftmost longest lookup.
+    )pbdoc")
+      .def(
+          "search_tokenized",
+          [](kd::Dictionary& d, const std::string& text) {
+            auto m = d.LookupText(text);
+            return kpy::make_match_iterator(m.begin(), m.end());
+          },
+          py::arg("text"),
+          R"pbdoc(
+            Search a text by tokenizing on whitespace and performing
+            leftmost longest lookup for each token.
+          )pbdoc")
+      .def(
+          "statistics",
+          [](const kd::Dictionary& d) {
+            py::module_ json = py::module_::import("json");
+            return json.attr("loads")(d.GetStatistics());
+          },
+          R"pbdoc(
+            Get the statistics of the dictionary as a python dict.
+          )pbdoc");
 
   py::class_<kd::SecondaryKeyDictionary>(m, "SecondaryKeyDictionary");
 }
