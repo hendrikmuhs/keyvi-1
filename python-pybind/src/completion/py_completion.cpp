@@ -78,7 +78,7 @@ void init_keyvi_completion(const py::module_& module) {
           )pbdoc")
       .def(
           "complete_fuzzy",
-          [](kdc::PrefixCompletion& c, const std::string& query, const int max_edit_distance,
+          [](const kdc::PrefixCompletion& c, const std::string& query, const int max_edit_distance,
              const size_t minimum_exact_prefix) {
             auto m = c.GetFuzzyCompletions(query, max_edit_distance, minimum_exact_prefix);
             return kpy::make_match_iterator(m.begin(), m.end());
