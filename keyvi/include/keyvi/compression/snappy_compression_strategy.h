@@ -47,7 +47,7 @@ struct SnappyCompressionStrategy final : public CompressionStrategy {
     buffer->resize(output_length + 1);
   }
 
-  inline std::string Decompress(const char* data, const size_t size) override { return DoDecompress(data, size); }
+  std::string Decompress(const char* data, const size_t size) override { return DoDecompress(data, size); }
 
   static std::string DoDecompress(const char* data, const size_t size) {
     std::string uncompressed;

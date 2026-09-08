@@ -93,9 +93,9 @@ struct RawCompressionStrategy final : public CompressionStrategy {
     std::memcpy(buffer->data() + 1, raw, raw_size);
   }
 
-  inline std::string Decompress(const char* data, const size_t size) override { return DoDecompress(data, size); }
+  std::string Decompress(const char* data, const size_t size) override { return DoDecompress(data, size); }
 
-  static inline std::string DoDecompress(const char* data, const size_t size) {
+  static std::string DoDecompress(const char* data, const size_t size) {
     return std::string(data + 1, size - 1);
   }
 
