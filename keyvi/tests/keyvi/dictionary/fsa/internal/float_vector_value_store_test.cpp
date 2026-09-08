@@ -17,6 +17,9 @@
 
 #include "keyvi/dictionary/fsa/internal/float_vector_value_store.h"
 
+#include <string>
+#include <vector>
+
 #include <boost/filesystem.hpp>
 #include <boost/interprocess/file_mapping.hpp>
 #include <boost/test/unit_test.hpp>

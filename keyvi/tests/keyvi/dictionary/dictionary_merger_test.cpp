@@ -23,7 +23,9 @@
  *      Author: hendrik
  */
 
+#include <string>
 #include <unordered_set>
+#include <vector>
 
 #include <boost/test/unit_test.hpp>
 

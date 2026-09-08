@@ -15,6 +15,9 @@
  * limitations under the License.
  */
 
+#include <string>
+#include <vector>
+
 #include <boost/test/unit_test.hpp>
 
 #include "keyvi/util/float_vector_value.h"
