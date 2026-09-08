@@ -25,6 +25,7 @@
 #ifndef KEYVI_COMPRESSION_COMPRESSION_SELECTOR_H_
 #define KEYVI_COMPRESSION_COMPRESSION_SELECTOR_H_
 
+#include <cstddef>
 #include <memory>
 #include <string>
 
