@@ -28,6 +28,7 @@
 #define ZLIB_CONST
 
 #include <zlib.h>
+#include <stdexcept>
 #include <string>
 
 #include "keyvi/compression/compression_strategy.h"

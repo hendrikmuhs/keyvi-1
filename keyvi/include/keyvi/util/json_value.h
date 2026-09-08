@@ -44,8 +44,8 @@ namespace util {
 inline std::string DecodeJsonValue(const char* data, const size_t size) {
   const auto algorithm = static_cast<compression::CompressionAlgorithm>(data[0]);
 
-  const char* msgpack_data;
-  size_t msgpack_size;
+  const char* msgpack_data = nullptr;
+  size_t msgpack_size = 0;
   std::string decompressed;
 
   if (algorithm == compression::CompressionAlgorithm::NO_COMPRESSION) {

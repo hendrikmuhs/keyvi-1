@@ -403,7 +403,7 @@ class JsonValueStoreReader final : public IValueStoreReader {
 
   std::string GetValueAsString(uint64_t fsa_value) const override {
     TRACE("JsonValueStoreReader GetValueAsString");
-    size_t value_size;
+    size_t value_size = 0;
     const char* value_ptr = keyvi::util::decodeVarIntString(strings_ + fsa_value, &value_size);
 
     return keyvi::util::DecodeJsonValue(value_ptr, value_size);

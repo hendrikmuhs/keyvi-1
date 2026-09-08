@@ -386,7 +386,7 @@ class FloatVectorValueStoreReader final : public IValueStoreReader {
 
   std::string GetValueAsString(uint64_t fsa_value) const override {
     TRACE("FloatVectorValueStoreReader GetValueAsString");
-    size_t value_size;
+    size_t value_size = 0;
     const char* value_ptr = keyvi::util::decodeVarIntString(strings_ + fsa_value, &value_size);
 
     return keyvi::util::FloatVectorAsString(keyvi::util::DecodeFloatVector(value_ptr, value_size), ", ");
@@ -428,11 +428,11 @@ class FloatVectorValueStoreReader final : public IValueStoreReader {
     }
 
     // compare the dimensions of the 1st vector of each value store
-    size_t packed_size;
+    size_t packed_size = 0;
     const char* packed_ptr = keyvi::util::decodeVarIntString(strings_, &packed_size);
     std::vector<float> v = keyvi::util::DecodeFloatVector(packed_ptr, packed_size);
 
-    size_t other_packed_size;
+    size_t other_packed_size = 0;
     const char* other_packed_ptr = keyvi::util::decodeVarIntString(
         dynamic_cast<const FloatVectorValueStoreReader*>(&other)->strings_, &other_packed_size);
     std::vector<float> other_v = keyvi::util::DecodeFloatVector(other_packed_ptr, other_packed_size);
