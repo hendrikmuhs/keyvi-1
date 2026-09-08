@@ -101,9 +101,8 @@ struct ZlibCompressionStrategy final : public CompressionStrategy {
 
     if (inflateInit(&zs) != Z_OK) throw(std::runtime_error("inflateInit failed while decompressing."));
 
-    zs.next_in =
-        reinterpret_cast<z_const Bytef*>(data) +
-        1;  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic)
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic)
+    zs.next_in = reinterpret_cast<z_const Bytef*>(data) + 1;
     zs.avail_in = size - 1;
 
     int ret;
