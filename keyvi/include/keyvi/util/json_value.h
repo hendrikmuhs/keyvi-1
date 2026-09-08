@@ -25,11 +25,14 @@
 #ifndef KEYVI_UTIL_JSON_VALUE_H_
 #define KEYVI_UTIL_JSON_VALUE_H_
 
+#include <cstddef>
 #include <string>
 
+#include "keyvi/compression/compression_algorithm.h"
 #include "keyvi/compression/compression_selector.h"
 #include "keyvi/util/msgpack_util.h"
 #include "msgpack.hpp"
+#include "msgpack/v3/unpack.hpp"
 #include "rapidjson/document.h"
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/writer.h"
@@ -42,7 +45,8 @@ namespace util {
 
 /** Decompresses (if needed) and decodes a json value stored in a JsonValueStore. */
 inline std::string DecodeJsonValue(const char* data, const size_t size) {
-  const auto algorithm = static_cast<compression::CompressionAlgorithm>(data[0]);
+  const auto algorithm = static_cast<compression::CompressionAlgorithm>(
+      data[0]);  // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
   const char* msgpack_data = nullptr;
   size_t msgpack_size = 0;
