@@ -430,12 +430,12 @@ class FloatVectorValueStoreReader final : public IValueStoreReader {
     // compare the dimensions of the 1st vector of each value store
     size_t packed_size = 0;
     const char* packed_ptr = keyvi::util::decodeVarIntString(strings_, &packed_size);
-    std::vector<float> v = keyvi::util::DecodeFloatVector(packed_ptr, packed_size);
+    std::vector<float> const v = keyvi::util::DecodeFloatVector(packed_ptr, packed_size);
 
     size_t other_packed_size = 0;
     const char* other_packed_ptr = keyvi::util::decodeVarIntString(
         dynamic_cast<const FloatVectorValueStoreReader*>(&other)->strings_, &other_packed_size);
-    std::vector<float> other_v = keyvi::util::DecodeFloatVector(other_packed_ptr, other_packed_size);
+    std::vector<float> const other_v = keyvi::util::DecodeFloatVector(other_packed_ptr, other_packed_size);
 
     if (v.size() != other_v.size()) {
       throw std::invalid_argument("Float Vectors must have the same number of dimensions.");
