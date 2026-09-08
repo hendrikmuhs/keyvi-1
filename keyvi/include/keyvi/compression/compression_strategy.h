@@ -96,7 +96,7 @@ struct RawCompressionStrategy final : public CompressionStrategy {
   std::string Decompress(const char* data, const size_t size) override { return DoDecompress(data, size); }
 
   static std::string DoDecompress(const char* data, const size_t size) {
-    return std::string(data + 1, size - 1);
+    return {data + 1, size - 1};  // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
   }
 
   std::string name() const { return "raw"; }

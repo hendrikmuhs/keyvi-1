@@ -49,7 +49,7 @@ inline std::string DecodeJsonValue(const char* data, const size_t size) {
   std::string decompressed;
 
   if (algorithm == compression::CompressionAlgorithm::NO_COMPRESSION) {
-    msgpack_data = data + 1;
+    msgpack_data = data + 1;  // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     msgpack_size = size - 1;
   } else {
     compression::decompress_func_t decompressor = compression::decompressor_by_code(algorithm);
