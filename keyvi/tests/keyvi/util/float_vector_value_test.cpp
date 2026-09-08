@@ -27,7 +27,7 @@ BOOST_AUTO_TEST_SUITE(FloatVectorValueTests)
 BOOST_AUTO_TEST_CASE(EncodeDecodeTest) {
   std::vector<float> v({1.2, 1.3, 1.4, 1.5, 1.6});
   std::string encoded = EncodeFloatVector(v, 5);
-  std::vector<float> decoded = DecodeFloatVector(encoded);
+  std::vector<float> decoded = DecodeFloatVector(encoded.data(), encoded.size());
   BOOST_CHECK_EQUAL(5, decoded.size());
 
   for (size_t i = 0; i < 5; ++i) {

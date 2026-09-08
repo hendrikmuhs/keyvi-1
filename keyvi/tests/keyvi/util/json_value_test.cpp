@@ -44,12 +44,13 @@ BOOST_AUTO_TEST_CASE(EncodeDecodeTest) {
       "2,3,4],\"d\":{\"k\":\"v\"}}";
 
   std::string encoded = EncodeJsonValue(input);
-  std::string output = DecodeJsonValue(encoded);
+  std::string output = DecodeJsonValue(encoded.data(), encoded.size());
 
   BOOST_CHECK_EQUAL(input, output);
 
   std::string encoded_single_precision_float = EncodeJsonValue(input, true);
-  std::string output_single_precision_float = DecodeJsonValue(encoded_single_precision_float);
+  std::string output_single_precision_float =
+      DecodeJsonValue(encoded_single_precision_float.data(), encoded_single_precision_float.size());
 
   BOOST_CHECK_EQUAL(input, output_single_precision_float);
 }
@@ -66,7 +67,7 @@ BOOST_AUTO_TEST_CASE(EncodeDecodeFloats) {
 
   std::string input = string_stream.str();
   std::string encoded = EncodeJsonValue(input);
-  std::string output = DecodeJsonValue(encoded);
+  std::string output = DecodeJsonValue(encoded.data(), encoded.size());
 
   rapidjson::Document json_document;
 
@@ -89,7 +90,8 @@ BOOST_AUTO_TEST_CASE(EncodeDecodeFloats) {
   BOOST_CHECK_EQUAL(json_document["ninf"].GetDouble(), -std::numeric_limits<double>::infinity());
 
   std::string encoded_single_precision_float = EncodeJsonValue(input, true);
-  std::string output_single_precision_float = DecodeJsonValue(encoded_single_precision_float);
+  std::string output_single_precision_float =
+      DecodeJsonValue(encoded_single_precision_float.data(), encoded_single_precision_float.size());
 
   json_document.Parse<rapidjson::kParseNanAndInfFlag>(output_single_precision_float);
   BOOST_CHECK(!json_document.HasParseError());

@@ -61,14 +61,14 @@ struct ZstdCompressionStrategy final : public CompressionStrategy {
     buffer->resize(output_length + 1);
   }
 
-  inline std::string Decompress(const std::string& compressed) { return DoDecompress(compressed); }
+  inline std::string Decompress(const char* data, const size_t size) override { return DoDecompress(data, size); }
 
-  static std::string DoDecompress(const std::string& compressed) {
+  static std::string DoDecompress(const char* data, const size_t size) {
     std::string uncompressed;
 
-    size_t dest_size = ZSTD_getFrameContentSize(&compressed.data()[1], compressed.size() - 1);
+    size_t dest_size = ZSTD_getFrameContentSize(data + 1, size - 1);
     uncompressed.resize(dest_size);
-    ZSTD_decompress(&uncompressed[0], dest_size, &compressed.data()[1], compressed.size() - 1);
+    ZSTD_decompress(&uncompressed[0], dest_size, data + 1, size - 1);
 
     return uncompressed;
   }

@@ -41,13 +41,27 @@ namespace keyvi {
 namespace util {
 
 /** Decompresses (if needed) and decodes a json value stored in a JsonValueStore. */
-inline std::string DecodeJsonValue(const std::string& encoded_value) {
-  compression::decompress_func_t decompressor = compression::decompressor_from_string(encoded_value);
-  std::string packed_string = decompressor(encoded_value);
-  TRACE("unpacking %s", packed_string.c_str());
+inline std::string DecodeJsonValue(const char* data, const size_t size) {
+  const auto algorithm = static_cast<compression::CompressionAlgorithm>(data[0]);
+
+  const char* msgpack_data;
+  size_t msgpack_size;
+  std::string decompressed;
+
+  if (algorithm == compression::CompressionAlgorithm::NO_COMPRESSION) {
+    msgpack_data = data + 1;
+    msgpack_size = size - 1;
+  } else {
+    compression::decompress_func_t decompressor = compression::decompressor_by_code(algorithm);
+    decompressed = decompressor(data, size);
+    msgpack_data = decompressed.data();
+    msgpack_size = decompressed.size();
+  }
+
+  TRACE("unpacking msgpack data of size %zu", msgpack_size);
 
   msgpack::object_handle doc;
-  msgpack::unpack(doc, packed_string.data(), packed_string.size());
+  msgpack::unpack(doc, msgpack_data, msgpack_size);
 
   rapidjson::StringBuffer buffer;
   rapidjson::Writer<rapidjson::StringBuffer, rapidjson::UTF8<>, rapidjson::UTF8<>, rapidjson::CrtAllocator,

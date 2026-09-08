@@ -92,16 +92,16 @@ struct ZlibCompressionStrategy final : public CompressionStrategy {
     buffer->resize(output_length + 1);
   }
 
-  inline std::string Decompress(const std::string& compressed) { return DoDecompress(compressed); }
+  inline std::string Decompress(const char* data, const size_t size) override { return DoDecompress(data, size); }
 
-  static std::string DoDecompress(const std::string& compressed) {
+  static std::string DoDecompress(const char* data, const size_t size) {
     z_stream zs;  // z_stream is zlib's control structure
     memset(&zs, 0, sizeof(zs));
 
     if (inflateInit(&zs) != Z_OK) throw(std::runtime_error("inflateInit failed while decompressing."));
 
-    zs.next_in = reinterpret_cast<z_const Bytef*>(compressed.data()) + 1;
-    zs.avail_in = compressed.size() - 1;
+    zs.next_in = reinterpret_cast<z_const Bytef*>(data) + 1;
+    zs.avail_in = size - 1;
 
     int ret;
     char outbuffer[32768];
