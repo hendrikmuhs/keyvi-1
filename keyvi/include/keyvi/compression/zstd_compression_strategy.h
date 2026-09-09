@@ -66,7 +66,7 @@ struct ZstdCompressionStrategy final : public CompressionStrategy {
   static std::string DoDecompress(const char* data, const size_t size) {
     std::string uncompressed;
 
-    size_t const dest_size =
+    const size_t dest_size =
         ZSTD_getFrameContentSize(data + 1, size - 1);  // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     uncompressed.resize(dest_size);
     // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
