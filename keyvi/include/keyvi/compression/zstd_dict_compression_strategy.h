@@ -37,7 +37,8 @@ constexpr int kZstdDefaultCompressionLevel = ZSTD_DEFAULT_CLEVEL;
 namespace keyvi::compression {
 
 struct ZstdDictCompressionStrategy final : public CompressionStrategy {
-  ZstdDictCompressionStrategy(const char* dict_data, size_t dict_size, int compression_level = kZstdDefaultCompressionLevel)
+  ZstdDictCompressionStrategy(const char* dict_data, size_t dict_size,
+                              int compression_level = kZstdDefaultCompressionLevel)
       : cctx_(ZSTD_createCCtx()),
         dctx_(ZSTD_createDCtx()),
         cdict_(ZSTD_createCDict(dict_data, dict_size, compression_level)),
@@ -114,6 +115,6 @@ struct ZstdDictCompressionStrategy final : public CompressionStrategy {
   ZSTD_DDict* ddict_;
 };
 
-} // namespace keyvi::compression
+}  // namespace keyvi::compression
 
 #endif  // KEYVI_COMPRESSION_ZSTD_DICT_COMPRESSION_STRATEGY_H_
