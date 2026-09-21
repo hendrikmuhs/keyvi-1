@@ -20,9 +20,12 @@
 
 #include <zstd.h>
 
+#include <cstddef>
+#include <cstdint>
 #include <stdexcept>
 #include <string>
 
+#include "keyvi/compression/compression_algorithm.h"
 #include "keyvi/compression/compression_strategy.h"
 
 #ifndef ZSTD_DEFAULT_CLEVEL
@@ -38,32 +41,36 @@ struct ZstdDictCompressionStrategy final : public CompressionStrategy {
         dctx_(ZSTD_createDCtx()),
         cdict_(ZSTD_createCDict(dict_data, dict_size, compression_level)),
         ddict_(ZSTD_createDDict(dict_data, dict_size)) {
-    if (!cctx_ || !dctx_ || !cdict_ || !ddict_) {
+    if (cctx_ == nullptr || dctx_ == nullptr || cdict_ == nullptr || ddict_ == nullptr) {
       Cleanup();
       throw std::runtime_error("failed to initialize zstd dictionary compression");
     }
   }
 
-  ~ZstdDictCompressionStrategy() { Cleanup(); }
+  ~ZstdDictCompressionStrategy() override { Cleanup(); }
 
   ZstdDictCompressionStrategy(const ZstdDictCompressionStrategy&) = delete;
   ZstdDictCompressionStrategy& operator=(const ZstdDictCompressionStrategy&) = delete;
+  ZstdDictCompressionStrategy(ZstdDictCompressionStrategy&&) = delete;
+  ZstdDictCompressionStrategy& operator=(ZstdDictCompressionStrategy&&) = delete;
 
   using CompressionStrategy::Compress;
 
   void Compress(buffer_t* buffer, const char* raw, size_t raw_size) override {
     size_t output_length = ZSTD_compressBound(raw_size);
     buffer->resize(output_length + 1);
-    buffer->data()[0] = static_cast<char>(ZSTD_DICT_COMPRESSION);
+    (*buffer)[0] = static_cast<char>(ZSTD_DICT_COMPRESSION);
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     output_length = ZSTD_compress_usingCDict(cctx_, buffer->data() + 1, output_length, raw, raw_size, cdict_);
-    if (ZSTD_isError(output_length)) {
+    if (ZSTD_isError(output_length) != 0u) {
       throw std::runtime_error(std::string("zstd dict compression failed: ") + ZSTD_getErrorName(output_length));
     }
     buffer->resize(output_length + 1);
   }
 
   std::string Decompress(const char* data, const size_t size) override {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     const size_t dest_size = ZSTD_getFrameContentSize(data + 1, size - 1);
     if (dest_size == ZSTD_CONTENTSIZE_UNKNOWN || dest_size == ZSTD_CONTENTSIZE_ERROR) {
       throw std::runtime_error("zstd dict decompression failed: unable to determine content size");
@@ -71,8 +78,9 @@ struct ZstdDictCompressionStrategy final : public CompressionStrategy {
 
     std::string uncompressed;
     uncompressed.resize(dest_size);
-    size_t result = ZSTD_decompress_usingDDict(dctx_, uncompressed.data(), dest_size, data + 1, size - 1, ddict_);
-    if (ZSTD_isError(result)) {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+    const size_t result = ZSTD_decompress_usingDDict(dctx_, uncompressed.data(), dest_size, data + 1, size - 1, ddict_);
+    if (ZSTD_isError(result) != 0u) {
       throw std::runtime_error(std::string("zstd dict decompression failed: ") + ZSTD_getErrorName(result));
     }
 
@@ -85,10 +93,18 @@ struct ZstdDictCompressionStrategy final : public CompressionStrategy {
 
  private:
   void Cleanup() {
-    if (cctx_) ZSTD_freeCCtx(cctx_);
-    if (dctx_) ZSTD_freeDCtx(dctx_);
-    if (cdict_) ZSTD_freeCDict(cdict_);
-    if (ddict_) ZSTD_freeDDict(ddict_);
+    if (cctx_ != nullptr) {
+      ZSTD_freeCCtx(cctx_);
+    }
+    if (dctx_ != nullptr) {
+      ZSTD_freeDCtx(dctx_);
+    }
+    if (cdict_ != nullptr) {
+      ZSTD_freeCDict(cdict_);
+    }
+    if (ddict_ != nullptr) {
+      ZSTD_freeDDict(ddict_);
+    }
   }
 
   ZSTD_CCtx* cctx_;
