@@ -94,7 +94,7 @@ BOOST_AUTO_TEST_CASE(CompressedSmallerThanPlainZstd) {
   buffer_t plain_buf;
   plain_buf.resize(ZSTD_compressBound(input.size()) + 1);
   const size_t plain_size =
-      ZSTD_compress(plain_buf.data(), plain_buf.size(), input.data(), input.size(), ZSTD_DEFAULT_CLEVEL);
+      ZSTD_compress(plain_buf.data(), plain_buf.size(), input.data(), input.size(), kZstdDefaultCompressionLevel);
 
   BOOST_CHECK(dict_buf.size() <= plain_size + 1);
 }
