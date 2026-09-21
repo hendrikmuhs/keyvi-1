@@ -37,7 +37,6 @@
 #include "keyvi/compression/snappy_compression_strategy.h"
 #include "keyvi/compression/zlib_compression_strategy.h"
 #include "keyvi/compression/zstd_compression_strategy.h"
-#include "keyvi/compression/zstd_dict_compression_strategy.h"
 
 // #define ENABLE_TRACING
 #include "keyvi/dictionary/util/trace.h"

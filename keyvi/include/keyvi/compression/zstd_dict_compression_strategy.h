@@ -63,7 +63,7 @@ struct ZstdDictCompressionStrategy final : public CompressionStrategy {
 
     // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     output_length = ZSTD_compress_usingCDict(cctx_, buffer->data() + 1, output_length, raw, raw_size, cdict_);
-    if (ZSTD_isError(output_length) != 0u) {
+    if (ZSTD_isError(output_length) != 0U) {
       throw std::runtime_error(std::string("zstd dict compression failed: ") + ZSTD_getErrorName(output_length));
     }
     buffer->resize(output_length + 1);
@@ -80,16 +80,16 @@ struct ZstdDictCompressionStrategy final : public CompressionStrategy {
     uncompressed.resize(dest_size);
     // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     const size_t result = ZSTD_decompress_usingDDict(dctx_, uncompressed.data(), dest_size, data + 1, size - 1, ddict_);
-    if (ZSTD_isError(result) != 0u) {
+    if (ZSTD_isError(result) != 0U) {
       throw std::runtime_error(std::string("zstd dict decompression failed: ") + ZSTD_getErrorName(result));
     }
 
     return uncompressed;
   }
 
-  std::string name() const override { return "zstd_dict"; }
+  [[nodiscard]] std::string name() const override { return "zstd_dict"; }
 
-  uint64_t GetFileVersionMin() const override { return 4; }
+  [[nodiscard]] uint64_t GetFileVersionMin() const override { return 4; }
 
  private:
   void Cleanup() {

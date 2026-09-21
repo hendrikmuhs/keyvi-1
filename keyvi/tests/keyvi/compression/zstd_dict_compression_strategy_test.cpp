@@ -41,9 +41,9 @@ std::vector<char> TrainDictionary(const std::vector<std::string>& samples, size_
   }
 
   std::vector<char> dict_buffer(dict_capacity);
-  size_t dict_size = ZDICT_trainFromBuffer(dict_buffer.data(), dict_buffer.size(), combined.data(), sample_sizes.data(),
-                                           static_cast<unsigned>(samples.size()));
-  if (ZSTD_isError(dict_size)) {
+  const size_t dict_size = ZDICT_trainFromBuffer(dict_buffer.data(), dict_buffer.size(), combined.data(),
+                                                 sample_sizes.data(), static_cast<unsigned>(samples.size()));
+  if (ZSTD_isError(dict_size) != 0U) {
     dict_buffer.clear();
     return dict_buffer;
   }
@@ -55,6 +55,7 @@ std::vector<char> TrainDictionary(const std::vector<std::string>& samples, size_
 
 BOOST_AUTO_TEST_CASE(CompressAndDecompress) {
   std::vector<std::string> samples;
+  samples.reserve(200);
   for (int i = 0; i < 200; ++i) {
     samples.push_back("the quick brown fox jumps over the lazy dog " + std::to_string(i));
   }
@@ -75,6 +76,7 @@ BOOST_AUTO_TEST_CASE(CompressAndDecompress) {
 
 BOOST_AUTO_TEST_CASE(CompressedSmallerThanPlainZstd) {
   std::vector<std::string> samples;
+  samples.reserve(200);
   for (int i = 0; i < 200; ++i) {
     samples.push_back("the quick brown fox jumps over the lazy dog " + std::to_string(i));
   }
@@ -91,7 +93,7 @@ BOOST_AUTO_TEST_CASE(CompressedSmallerThanPlainZstd) {
 
   buffer_t plain_buf;
   plain_buf.resize(ZSTD_compressBound(input.size()) + 1);
-  size_t plain_size =
+  const size_t plain_size =
       ZSTD_compress(plain_buf.data(), plain_buf.size(), input.data(), input.size(), ZSTD_DEFAULT_CLEVEL);
 
   BOOST_CHECK(dict_buf.size() <= plain_size + 1);
@@ -99,6 +101,7 @@ BOOST_AUTO_TEST_CASE(CompressedSmallerThanPlainZstd) {
 
 BOOST_AUTO_TEST_CASE(EmptyInput) {
   std::vector<std::string> samples;
+  samples.reserve(200);
   for (int i = 0; i < 200; ++i) {
     samples.push_back("sample data " + std::to_string(i));
   }
@@ -116,6 +119,7 @@ BOOST_AUTO_TEST_CASE(EmptyInput) {
 
 BOOST_AUTO_TEST_CASE(Name) {
   std::vector<std::string> samples;
+  samples.reserve(200);
   for (int i = 0; i < 200; ++i) {
     samples.push_back("sample " + std::to_string(i));
   }
@@ -123,7 +127,7 @@ BOOST_AUTO_TEST_CASE(Name) {
   auto dict = TrainDictionary(samples);
   BOOST_REQUIRE(!dict.empty());
 
-  ZstdDictCompressionStrategy strategy(dict.data(), dict.size());
+  const ZstdDictCompressionStrategy strategy(dict.data(), dict.size());
   BOOST_CHECK_EQUAL("zstd_dict", strategy.name());
 }
 
